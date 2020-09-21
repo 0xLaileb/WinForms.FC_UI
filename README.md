@@ -64,7 +64,7 @@
 | FButton      | ➕     | ➕      | ➕         | ➕                 | ➕          | ➕      | ➕       | ➕    |
 | FCheckBox    | ➕     | ➕      | ➕         | ➕                 | ➕          | ➖      | ➕       | ➖    |
 | FRadioButton | ➕     | ➕      | ➕         | ➕                 | ➕          | ➖      | ➕       | ➖    |
-| FSwitchBox   | ➕     | ➕      | ➕         | ➕                 | ➕          | ➕      | ➕       | ➕    |
+| FSwitchBox   | ➖     | ➕      | ➕         | ➕                 | ➕          | ➕      | ➕       | ➕    |
 | FProgressBar | ➖     | ➕      | ➕         | ➕                 | ➕          | ➕      | ➕       | ➕    |
 | FScrollBar   | ➖     | ➕      | ➕         | ➕                 | ➕          | ➕      | ➕       | ➕    |
 | FRichTextBox | ➖     | ➕      | ➕         | ➖                 | ➕          | ➕      | ➕       | ➕    |
