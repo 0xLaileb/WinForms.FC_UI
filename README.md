@@ -1,8 +1,3 @@
-<h1><div align="center">
-  🕗СКОРО РЕЛИЗ🕗<br>
-  🕗COMING SOON🕗
-</h1>
-
 <p align="center"> 
   <img align="center" src="https://github.com/Lako-FC/FC_UI/blob/master/GITHUB_RESOURCES/logo.png?raw=true" width="150"/> 
 </p>
@@ -74,6 +69,12 @@
 
 ## 🔎 Скрины
 - ### Стандартный стиль
+[общая гифка]
+
+- ### Режим RGB
+[общая гифка]
+
+- ### Компонент Global_RGB
 [общая гифка]
 
 - ### Случайный стиль
