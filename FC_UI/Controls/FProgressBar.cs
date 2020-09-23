@@ -77,6 +77,22 @@ namespace FC_UI.Controls
             }
         }
         //
+        private int tmp_start_drawing_value;
+        [Category("Value")]
+        [Description(
+        "Значение, при котором происходит рисование Value (if (Value >= value) Drawing).\n" +
+        "(используйте при Rounding == true, чтобы устранить дефект при маленьких значениях)"
+        )]
+        public int StartDrawingValue
+        {
+            get => tmp_start_drawing_value;
+            set
+            {
+                tmp_start_drawing_value = value;
+                Refresh();
+            }
+        }
+        //
         private bool progress_text;
         [Category("FProgressBar")]
         [Description("Вкл/Выкл текст")]
@@ -472,6 +488,7 @@ namespace FC_UI.Controls
                         Value = 0;
                         Minimum = 0;
                         Maximum = 100;
+                        StartDrawingValue = 0; //6
                         ProgressText = true;
                         RGB = false;
                         Background = true;
@@ -654,7 +671,7 @@ namespace FC_UI.Controls
                 }
 
                 //Дополнительно
-                Draw_Value(graphics, roundingValue);
+                if (Value >= StartDrawingValue) Draw_Value(graphics, roundingValue);
 
                 return bitmap;
             }
@@ -690,13 +707,14 @@ namespace FC_UI.Controls
                 rectangle_value.Height += tmp * 2;
                 roundingValue += tmp * 2;
 
+                GraphicsPath graphicsPath_value = DrawEngine.RoundedRectangle(rectangle_value, roundingValue);
                 if (LinearGradient_Value) graphics.FillPath(new LinearGradientBrush(rectangle_value,
-                Color.FromArgb(ColorValue_Transparency, RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorBackground_Value_1),
-                Color.FromArgb(ColorValue_Transparency, RGB ? DrawEngine.HSV_To_RGB(h + 20, 1f, 1f) : ColorBackground_Value_2), 360),
-                DrawEngine.RoundedRectangle(rectangle_value, roundingValue));
+                    Color.FromArgb(ColorValue_Transparency, RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorBackground_Value_1),
+                    Color.FromArgb(ColorValue_Transparency, RGB ? DrawEngine.HSV_To_RGB(h + 20, 1f, 1f) : ColorBackground_Value_2), 360),
+                    graphicsPath_value);
                 else graphics.FillPath(new SolidBrush(
                     Color.FromArgb(ColorValue_Transparency, RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorProgressBar)),
-                    DrawEngine.RoundedRectangle(rectangle_value, roundingValue));
+                    graphicsPath_value);
             }
         }
         #endregion
