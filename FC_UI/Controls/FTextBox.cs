@@ -402,11 +402,18 @@ namespace FC_UI.Controls
             stringFormat.LineAlignment = StringAlignment.Center;
 
             textBox.Text = "Text";
+            textBox.TextChanged += TextBox_TextChanged; //
             Update_TextBox(false);
             Controls.Add(textBox);
 
             OnSizeChanged(null);
         }
+
+        private void TextBox_TextChanged(object sender, EventArgs e)
+        {
+            TextButton = textBox.Text;
+        }
+
         public void Update_TextBox(bool Visible)
         {
             textBox.Visible = Visible;
