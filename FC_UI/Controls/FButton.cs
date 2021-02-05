@@ -582,7 +582,7 @@ namespace FC_UI.Controls
                 if (Background_WidthPen != 0 && BackgroundPen == true)
                 {
                     Pen pen;
-                    if (LinearGradientPen) pen = new Pen(brush: new LinearGradientBrush(rectangle_region, ColorPen_1, ColorPen_2, 360), Background_WidthPen);
+                    if (LinearGradientPen) pen = new Pen(new LinearGradientBrush(rectangle_region, ColorPen_1, ColorPen_2, 360), Background_WidthPen);
                     else pen = new Pen(RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorBackground_Pen, Background_WidthPen);
                     pen.LineJoin = LineJoin.Round;
                     pen.DashCap = DashCap.Round;
