@@ -5,7 +5,7 @@
 <h1><div align="center">FC_UI</h1>
 <p align="center">
   <img src="https://img.shields.io/badge/PRICE-free-%231DC8EE"/>
-  <img src="https://img.shields.io/badge/SUPPORT-yes-%231DC8EE"/>
+  <img src="https://img.shields.io/badge/SUPPORT-no-%231DC8EE"/>
 </p>
 
 <p align="center">
