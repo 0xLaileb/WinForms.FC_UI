@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/WinForms.FC_UI.Example/WinForms.FC_UI.Example.csproj" Id="5b12895a-6cd0-4ff8-8c35-bf7e073adead" />
+  </Folder>
+  <Folder Name="/solution items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/WinForms.FC_UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WinForms.FC_UI.Tests/WinForms.FC_UI.Tests.csproj" Id="3be1baf5-ee3e-4230-9c41-7164332392c0" />
+  </Folder>
+</Solution>
