@@ -330,7 +330,10 @@ public partial class FProgressBar : FControlBase
         _valueRect.Height += offset * 2;
         roundingValue += offset * 2;
 
-        using GraphicsPath valuePath = DrawEngine.CreateRoundedPath(_valueRect, roundingValue);
+        float valueRounding = Math.Min(roundingValue, Math.Min(_valueRect.Width, _valueRect.Height) / 2f);
+        if (valueRounding < 0.5f) valueRounding = 0.1f;
+
+        using GraphicsPath valuePath = DrawEngine.CreateRoundedPath(_valueRect, valueRounding);
 
         if (UseGradientFill)
         {

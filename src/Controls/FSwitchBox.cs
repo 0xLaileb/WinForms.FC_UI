@@ -245,12 +245,11 @@ public partial class FSwitchBox : FControlBase
 
         if (Checked)
         {
-            int offsetX = (int)(_regionRect.Width / 10 * 6.2F);
             int offsetY = _regionRect.Height / 6;
-            toggleRect.X = _regionRect.X + offsetX;
-            toggleRect.Y = _regionRect.Y + offsetY;
             toggleRect.Height = _regionRect.Height - offsetY * 2;
             toggleRect.Width = toggleRect.Height;
+            toggleRect.X = _regionRect.X + _regionRect.Width - (_regionRect.Width / 10) - toggleRect.Width;
+            toggleRect.Y = _regionRect.Y + offsetY;
 
             if (UseGradientFill)
             {

@@ -260,11 +260,8 @@ Contributions are welcome! To get started:
 
 Things to add or fix in future releases:
 
-1. **FSwitchBox** — Fix rendering when activated (calculations are incorrect; the control draws incorrectly at larger sizes).
-2. **FButton** — Add image/icon support so a picture can be placed inside the button.
-3. **FProgressBar** — Fix value drawing artifact (when `Value` is small — below ~6 depending on `RoundingInt` — a visual defect appears). As a workaround you can use `StartDrawingValue`.
-4. **Click effect** — Add a hover-fade animation (hover in → fade out → fade back in).
-5. **ZColorPicker** — Finish refactoring to remove the internal `PictureBox` dependency.
+1. **FButton** — Add image/icon support so a picture can be placed inside the button.
+2. **ZColorPicker** — Finish refactoring to remove the internal `PictureBox` dependency.
 
 ---
 
