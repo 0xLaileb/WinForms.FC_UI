@@ -24,9 +24,9 @@ public class FSwitchBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundIsTrue()
+    public void Constructor_DefaultStyle_ShowBackgroundIsTrue()
     {
-        Assert.True(_switchBox.Background);
+        Assert.True(_switchBox.ShowBackground);
     }
 
     [Fact]
@@ -36,9 +36,9 @@ public class FSwitchBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_RoundingIntIs90()
+    public void Constructor_DefaultStyle_CornerRadiusIs90()
     {
-        Assert.Equal(90, _switchBox.RoundingInt);
+        Assert.Equal(90, _switchBox.CornerRadius);
     }
 
     [Fact]
@@ -80,22 +80,22 @@ public class FSwitchBoxTests : IDisposable
     [InlineData(0)]
     [InlineData(45)]
     [InlineData(100)]
-    public void RoundingInt_ValidValues_AreAccepted(int value)
+    public void CornerRadius_ValidValues_AreAccepted(int value)
     {
-        _switchBox.RoundingInt = value;
+        _switchBox.CornerRadius = value;
 
-        Assert.Equal(value, _switchBox.RoundingInt);
+        Assert.Equal(value, _switchBox.CornerRadius);
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]
-    public void RoundingInt_InvalidValues_AreRejected(int value)
+    public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _switchBox.RoundingInt;
-        _switchBox.RoundingInt = value;
+        int original = _switchBox.CornerRadius;
+        _switchBox.CornerRadius = value;
 
-        Assert.Equal(original, _switchBox.RoundingInt);
+        Assert.Equal(original, _switchBox.CornerRadius);
     }
 
     [Fact]

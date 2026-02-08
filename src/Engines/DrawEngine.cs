@@ -4,153 +4,140 @@ using Timer = System.Windows.Forms.Timer;
 
 namespace FC_UI;
 
-internal class DrawEngine
+internal static class DrawEngine
 {
     /// <summary>
-    /// Creates a new <c>GraphicsPath</c> object with rounded corners.
+    /// Creates a new <c>GraphicsPath</c> with rounded corners for the given rectangle.
     /// </summary>
     /// <returns>A <c>GraphicsPath</c> representing the rounded rectangle.</returns>
-    public static GraphicsPath RoundedRectangle(Rectangle rectangle, float value_angle)
+    public static GraphicsPath CreateRoundedPath(Rectangle rectangle, float cornerRadius)
     {
-        GraphicsPath graphicsPath = new();
-        try
-        {
-            graphicsPath.AddArc(rectangle.X, rectangle.Y, value_angle, value_angle, 180, 90);
-            graphicsPath.AddArc(rectangle.X + rectangle.Width - value_angle, rectangle.Y, value_angle, value_angle, 270, 90);
-            graphicsPath.AddArc(rectangle.X + rectangle.Width - value_angle, rectangle.Y + rectangle.Height - value_angle, value_angle, value_angle, 0, 90);
-            graphicsPath.AddArc(rectangle.X, rectangle.Y + rectangle.Height - value_angle, value_angle, value_angle, 90, 90);
+        GraphicsPath path = new();
 
-            graphicsPath.CloseFigure();
-        }
-        catch (Exception er) { HelpEngine.MSB_Error($"[DrawEngine.RoundedRectangle] Error: \n{er}"); }
-        return graphicsPath;
+        path.AddArc(rectangle.X, rectangle.Y, cornerRadius, cornerRadius, 180, 90);
+        path.AddArc(rectangle.X + rectangle.Width - cornerRadius, rectangle.Y, cornerRadius, cornerRadius, 270, 90);
+        path.AddArc(rectangle.X + rectangle.Width - cornerRadius, rectangle.Y + rectangle.Height - cornerRadius, cornerRadius, cornerRadius, 0, 90);
+        path.AddArc(rectangle.X, rectangle.Y + rectangle.Height - cornerRadius, cornerRadius, cornerRadius, 90, 90);
+        path.CloseFigure();
+
+        return path;
     }
 
     /// <summary>
-    /// Draws a blurred line used as a shadow effect for design.
+    /// Draws a blurred line used as a shadow effect.
     /// </summary>
-    /// <param name="graphics">The graphics surface to draw on.</param>
-    /// <param name="color">The base color.</param>
-    /// <param name="point_1">Start point of the line.</param>
-    /// <param name="point_2">End point of the line.</param>
-    /// <param name="max_alpha">Maximum alpha value.</param>
-    /// <param name="pen_width">Pen width.</param>
-    public static void DrawBlurred(Graphics graphics, Color color, Point point_1, Point point_2, int max_alpha, int pen_width)
+    public static void DrawBlurredShadow(Graphics graphics, Color color, Point start, Point end, int maxAlpha, int penWidth)
     {
-        float stepAlpha = (float)max_alpha / pen_width;
-        float actualAlpha = stepAlpha;
+        float alphaStep = (float)maxAlpha / penWidth;
+        float currentAlpha = alphaStep;
 
-        for (int pWidth = pen_width; pWidth > 0; pWidth--)
+        for (int width = penWidth; width > 0; width--)
         {
-            Color blurredColor = Color.FromArgb((int)actualAlpha, color);
-            using Pen blurredPen = new(blurredColor, pWidth)
+            Color blurredColor = Color.FromArgb((int)currentAlpha, color);
+            using Pen pen = new(blurredColor, width)
             {
                 StartCap = LineCap.Round,
                 EndCap = LineCap.Round
             };
 
-            graphics.DrawLine(blurredPen, point_1, point_2);
-            actualAlpha += stepAlpha;
+            graphics.DrawLine(pen, start, end);
+            currentAlpha += alphaStep;
         }
     }
 
     /// <summary>
-    /// Draws a blurred shape (GraphicsPath) used as a shadow effect for design.
+    /// Draws a blurred shape (GraphicsPath) used as a shadow effect.
     /// </summary>
-    /// <param name="graphics">The graphics surface to draw on.</param>
-    /// <param name="color">The base color.</param>
-    /// <param name="graphicsPath">The path to draw.</param>
-    /// <param name="max_alpha">Maximum alpha value.</param>
-    /// <param name="pen_width">Pen width.</param>
-    public static void DrawBlurred(Graphics graphics, Color color, GraphicsPath graphicsPath, int max_alpha, int pen_width)
+    public static void DrawBlurredShadow(Graphics graphics, Color color, GraphicsPath path, int maxAlpha, int penWidth)
     {
-        float tmp = (float)max_alpha / pen_width;
-        float actualAlpha = tmp;
+        float alphaStep = (float)maxAlpha / penWidth;
+        float currentAlpha = alphaStep;
 
-        for (int tmp_width = pen_width; tmp_width > 0; tmp_width--)
+        for (int width = penWidth; width > 0; width--)
         {
-            using Pen blurredPen = new(Color.FromArgb((int)actualAlpha, color), tmp_width)
+            using Pen pen = new(Color.FromArgb((int)currentAlpha, color), width)
             {
                 StartCap = LineCap.Round,
                 EndCap = LineCap.Round
             };
-            actualAlpha += tmp;
+            currentAlpha += alphaStep;
 
-            graphics.DrawPath(blurredPen, graphicsPath);
+            graphics.DrawPath(pen, path);
         }
     }
 
     #region RGB
-    private static float h_temp;
+
+    private static float s_globalHue;
 
     /// <summary>
-    /// <c>Timer</c> object for redrawing controls at a specified interval.
+    /// Timer for redrawing controls at a specified interval in global RGB mode.
     /// </summary>
-    public static readonly Timer timer_global_rgb = new() { Interval = 50 };
+    public static readonly Timer GlobalRgbTimer = new() { Interval = 50 };
 
-    private static EventHandler? _globalRgbTickHandler;
+    private static EventHandler? s_globalRgbHandler;
 
     /// <summary>
-    /// Controls the global timer for RGB mode.
+    /// Enables or disables the global RGB timer.
     /// </summary>
-    /// <param name="status">Timer status (enable or disable).</param>
-    public static void TimerGlobalRGB(bool status)
+    public static void SetGlobalRgbTimer(bool enabled)
     {
-        timer_global_rgb.Stop();
+        GlobalRgbTimer.Stop();
 
-        // Remove the previous handler to prevent event handler leak
-        if (_globalRgbTickHandler is not null)
+        if (s_globalRgbHandler is not null)
         {
-            timer_global_rgb.Tick -= _globalRgbTickHandler;
-            _globalRgbTickHandler = null;
+            GlobalRgbTimer.Tick -= s_globalRgbHandler;
+            s_globalRgbHandler = null;
         }
 
-        if (!status) return;
+        if (!enabled) return;
 
-        _globalRgbTickHandler = (sender, args) =>
+        s_globalRgbHandler = static (sender, args) =>
         {
-            h_temp += 4;
-            if (h_temp >= 360) h_temp = 0;
+            s_globalHue += 4;
+            if (s_globalHue >= 360) s_globalHue = 0;
         };
-        timer_global_rgb.Tick += _globalRgbTickHandler;
-        timer_global_rgb.Start();
+        GlobalRgbTimer.Tick += s_globalRgbHandler;
+        GlobalRgbTimer.Start();
     }
 
     /// <summary>
-    /// Converts HSV to RGB.
+    /// Converts HSV color to RGB.
     /// </summary>
     /// <param name="hue">Hue (0..360).</param>
     /// <param name="saturation">Saturation (0..1).</param>
-    /// <param name="value">Brightness value (0..1).</param>
+    /// <param name="value">Brightness (0..1).</param>
     /// <returns>A <c>Color</c> object.</returns>
-    public static Color HSV_To_RGB(float hue, float saturation, float value)
+    public static Color HsvToRgb(float hue, float saturation, float value)
     {
         if (saturation < float.Epsilon)
         {
-            int c = (int)(value * 255);
-            return Color.FromArgb(c, c, c);
+            int gray = (int)(value * 255);
+            return Color.FromArgb(gray, gray, gray);
         }
-        if (timer_global_rgb.Enabled) hue = h_temp;
+
+        if (GlobalRgbTimer.Enabled) hue = s_globalHue;
 
         hue /= 60;
-        int i = (int)Math.Floor(hue);
+        int sector = (int)Math.Floor(hue);
 
-        float f = hue - i;
+        float f = hue - sector;
         float p = value * (1 - saturation);
         float q = value * (1 - saturation * f);
         float t = value * (1 - saturation * (1 - f));
 
-        float r, g, b;
-        switch (i)
+        var (r, g, b) = sector switch
         {
-            case 0: r = value; g = t; b = p; break;
-            case 1: r = q; g = value; b = p; break;
-            case 2: r = p; g = value; b = t; break;
-            case 3: r = p; g = q; b = value; break;
-            case 4: r = t; g = p; b = value; break;
-            default: r = value; g = p; b = q; break;
-        }
+            0 => (value, t, p),
+            1 => (q, value, p),
+            2 => (p, value, t),
+            3 => (p, q, value),
+            4 => (t, p, value),
+            _ => (value, p, q),
+        };
+
         return Color.FromArgb(255, (int)(r * 255), (int)(g * 255), (int)(b * 255));
     }
+
     #endregion
 }

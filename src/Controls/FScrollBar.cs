@@ -1,840 +1,425 @@
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
-using Timer = System.Windows.Forms.Timer;
 
 namespace FC_UI.Controls;
 
 [ToolboxBitmap(typeof(VScrollBar))]
 [Description("Provides horizontal/vertical content scrolling capability (use event subscription).")]
 [DefaultEvent("ValueChanged")]
-public partial class FScrollBar : UserControl
+public partial class FScrollBar : FControlBase
 {
-    #region VARIABLES
-    private float h = 0;
-    private Rectangle rectangle_region = new();
-    private Rectangle rectangle_value = new();
-    private GraphicsPath graphicsPath = new();
-    private Size size_fscrollbar = new();
-    private EventHandler? _rgbTickHandler;
-    [Category("FC_UI")]
-    [Description("Occurs on every Value property change.")]
-    public event EventHandler ValueChanged;
-    public enum Style
-    {
-        Default,
-        Custom,
-        Random
-    }
+    #region Fields
+
+    private Rectangle _thumbRect = new();
+
     #endregion
 
-    #region SETTINGS
-    private int tmp_value_scroll;
+    #region Properties
+
+    [Category("FC_UI")]
+    [Description("Occurs on every Value property change.")]
+    public event EventHandler? ValueChanged;
+
     [Category("Value")]
-    [Description("Value")]
+    [Description("Current value")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public int Value
     {
-        get => tmp_value_scroll;
+        get;
         set
         {
-            if (tmp_value_scroll == value)
-                return;
-            tmp_value_scroll = value;
+            if (field == value) return;
+            field = value;
             Refresh();
             OnScroll();
         }
     }
-    //
-    private Orientation tmp_orientation;
+
     [Category("Value")]
-    [Description("System.Windows.Forms.Orientation")]
+    [Description("Orientation")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Orientation OrientationValue
+    public Orientation Orientation
     {
-        get => tmp_orientation;
+        get;
         set
         {
-            if (value == Orientation.Vertical)
+            if (value == System.Windows.Forms.Orientation.Vertical)
             {
                 Size = new(Size.Width, Size.Height);
-                if (RoundingInt != 0) RoundingInt /= 10;
+                if (CornerRadius != 0) CornerRadius /= 10;
             }
             else
             {
                 Size = new(Size.Height, Size.Width);
-                if (RoundingInt != 0) RoundingInt *= 10;
+                if (CornerRadius != 0) CornerRadius *= 10;
             }
-            tmp_orientation = value;
+            field = value;
             Refresh();
         }
     }
-    //
+
     [Category("Value")]
     [Description("Scroll step amount")]
     [DefaultValue(1)]
     public int SmallStep { get; set; }
-    //
-    private int tmp_thumbSize;
+
     [Category("Value")]
     [Description("Thumb size")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public int ThumbSize
     {
-        get => tmp_thumbSize;
-        set
-        {
-            tmp_thumbSize = value;
-            Refresh();
-        }
+        get;
+        set { field = value; Refresh(); }
     }
-    //
-    private int tmp_value_maximum;
+
     [Category("Value")]
-    [Description("MAX value")]
+    [Description("Maximum value")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public int Maximum
     {
-        get => tmp_value_maximum;
+        get;
         set
         {
             if (value > Minimum)
             {
-                tmp_value_maximum = value;
+                field = value;
                 Value = 0;
                 Refresh();
             }
         }
     }
-    //
-    private int tmp_value_minimum;
+
     [Category("Value")]
-    [Description("MIN value")]
+    [Description("Minimum value")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public int Minimum
     {
-        get => tmp_value_minimum;
+        get;
         set
         {
             if (value < Maximum)
             {
-                tmp_value_minimum = value;
+                field = value;
                 Value = 0;
                 Refresh();
             }
         }
     }
-    //
-    private bool tmp_rgb_status;
-    [Category("FScrollBar")]
-    [Description("Enable/Disable RGB")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool RGB
-    {
-        get => tmp_rgb_status;
-        set
-        {
-            tmp_rgb_status = value;
 
-            // Unsubscribe old handler to prevent event handler leak
-            timer_rgb.Stop();
-            if (_rgbTickHandler is not null)
-            {
-                timer_rgb.Tick -= _rgbTickHandler;
-                _rgbTickHandler = null;
-            }
-
-            if (tmp_rgb_status)
-            {
-                if (!DrawEngine.timer_global_rgb.Enabled)
-                {
-                    _rgbTickHandler = (sender, args) =>
-                    {
-                        h += 4;
-                        if (h >= 360) h = 0;
-                        Refresh();
-                    };
-                    timer_rgb.Tick += _rgbTickHandler;
-                    timer_rgb.Start();
-                }
-            }
-            else
-            {
-                Refresh();
-            }
-        }
-    }
-    //
-    private readonly Timer timer_rgb = new() { Interval = 300 };
-    [Category("Timers")]
-    [Description("RGB mode update speed (triggers repaint)")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int Timer_RGB
-    {
-        get => timer_rgb.Interval;
-        set => timer_rgb.Interval = value;
-    }
-    //
-    private Color tmp_color_fscrollbar;
     [Category("FScrollBar")]
-    [Description("Fill color")]
+    [Description("Thumb color")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorScrollBar
+    public Color ThumbColor
     {
-        get => tmp_color_fscrollbar;
-        set
-        {
-            tmp_color_fscrollbar = value;
-            Refresh();
-        }
+        get;
+        set { field = value; Refresh(); }
     }
-    //
-    private int tmp_color_fscrollbar_transparency;
+
     [Category("Value")]
-    [Description("Fill transparency")]
+    [Description("Thumb opacity (10-255)")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int ColorScrollBar_Transparency
+    public int ThumbOpacity
     {
-        get => tmp_color_fscrollbar_transparency;
+        get;
         set
         {
-            if (value >= 10 && value <= 255)
+            if (value is >= 10 and <= 255)
             {
-                tmp_color_fscrollbar_transparency = value;
+                field = value;
                 Refresh();
             }
         }
     }
-    //
-    private bool tmp_rounding_status;
-    [Category("FScrollBar")]
-    [Description("Enable/Disable rounding")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool Rounding
-    {
-        get => tmp_rounding_status;
-        set
-        {
-            tmp_rounding_status = value;
-            Refresh();
-        }
-    }
-    //
-    private int tmp_rounding_int;
-    [Category("FScrollBar")]
-    [Description("Rounding percentage")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int RoundingInt
-    {
-        get => tmp_rounding_int;
-        set
-        {
-            if (value >= 0 && value <= 100)
-            {
-                tmp_rounding_int = value;
-                Refresh();
-            }
-        }
-    }
-    //
-    private Color tmp_color_background;
-    [Category("FScrollBar")]
-    [Description("Background color")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground
-    {
-        get => tmp_color_background;
-        set
-        {
-            tmp_color_background = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_background;
-    [Category("FScrollBar")]
-    [Description("Enable/Disable background")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool Background
-    {
-        get => tmp_background;
-        set
-        {
-            tmp_background = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_background_pen;
-    [Category("BorderStyle")]
-    [Description("Enable/Disable border")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool BackgroundPen
-    {
-        get => tmp_background_pen;
-        set
-        {
-            tmp_background_pen = value;
-            OnSizeChanged(null);
-            Refresh();
-        }
-    }
-    //
-    private float tmp_background_width_pen;
-    [Category("BorderStyle")]
-    [Description("Border width")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public float Background_WidthPen
-    {
-        get => tmp_background_width_pen;
-        set
-        {
-            tmp_background_width_pen = value;
-            OnSizeChanged(null);
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_background_pen;
-    [Category("BorderStyle")]
-    [Description("Border color")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_Pen
-    {
-        get => tmp_color_background_pen;
-        set
-        {
-            tmp_color_background_pen = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_lighting;
-    [Category("Lighting")]
-    [Description("Enable/Disable lighting")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool Lighting
-    {
-        get => tmp_lighting;
-        set
-        {
-            tmp_lighting = value;
-            OnSizeChanged(null);
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_lighting;
-    [Category("Lighting")]
-    [Description("Lighting / shadow color")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorLighting
-    {
-        get => tmp_color_lighting;
-        set
-        {
-            tmp_color_lighting = value;
-            Refresh();
-        }
-    }
-    //
-    private int tmp_alpha;
-    [Category("Lighting")]
-    [Description("")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int Alpha
-    {
-        get => tmp_alpha;
-        set
-        {
-            tmp_alpha = value;
-            Refresh();
-        }
-    }
-    //
-    private int tmp_pen_width;
-    [Category("Lighting")]
-    [Description("")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int PenWidth
-    {
-        get => tmp_pen_width;
-        set
-        {
-            tmp_pen_width = value;
-            OnSizeChanged(null);
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_lineargradient_background_status;
-    [Category("LinearGradient")]
-    [Description("Enable/Disable background gradient")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool LinearGradient_Background
-    {
-        get => tmp_lineargradient_background_status;
-        set
-        {
-            tmp_lineargradient_background_status = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_1_for_gradient_background;
-    [Category("LinearGradient")]
-    [Description("Background gradient color #1")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_1
-    {
-        get => tmp_color_1_for_gradient_background;
-        set
-        {
-            tmp_color_1_for_gradient_background = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_2_for_gradient_background;
-    [Category("LinearGradient")]
-    [Description("Background gradient color #2")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_2
-    {
-        get => tmp_color_2_for_gradient_background;
-        set
-        {
-            tmp_color_2_for_gradient_background = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_lineargradient_value_status;
+
+    // --- Gradient Fill ---
+
     [Category("LinearGradient")]
     [Description("Enable/Disable thumb gradient")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool LinearGradient_Value
+    public bool UseGradientFill
     {
-        get => tmp_lineargradient_value_status;
-        set
-        {
-            tmp_lineargradient_value_status = value;
-            Refresh();
-        }
+        get;
+        set { field = value; Refresh(); }
     }
-    //
-    private Color tmp_color_1_for_gradient_value;
+
     [Category("LinearGradient")]
     [Description("Thumb gradient color #1")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_Value_1
+    public Color GradientFillColor1
     {
-        get => tmp_color_1_for_gradient_value;
-        set
-        {
-            tmp_color_1_for_gradient_value = value;
-            Refresh();
-        }
+        get;
+        set { field = value; Refresh(); }
     }
-    //
-    private Color tmp_color_2_for_gradient_value;
+
     [Category("LinearGradient")]
     [Description("Thumb gradient color #2")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_Value_2
+    public Color GradientFillColor2
     {
-        get => tmp_color_2_for_gradient_value;
-        set
-        {
-            tmp_color_2_for_gradient_value = value;
-            Refresh();
-        }
+        get;
+        set { field = value; Refresh(); }
     }
-    //
-    private bool tmp_lineargradient_pen_status;
-    [Category("LinearGradient")]
-    [Description("Enable/Disable border gradient")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool LinearGradientPen
-    {
-        get => tmp_lineargradient_pen_status;
-        set
-        {
-            tmp_lineargradient_pen_status = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_1_for_gradient_pen;
-    [Category("LinearGradient")]
-    [Description("Border gradient color #1")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorPen_1
-    {
-        get => tmp_color_1_for_gradient_pen;
-        set
-        {
-            tmp_color_1_for_gradient_pen = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_2_for_gradient_pen;
-    [Category("LinearGradient")]
-    [Description("Border gradient color #2")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorPen_2
-    {
-        get => tmp_color_2_for_gradient_pen;
-        set
-        {
-            tmp_color_2_for_gradient_pen = value;
-            Refresh();
-        }
-    }
-    //
-    private SmoothingMode tmp_smoothing_mode;
-    [Category("FScrollBar")]
-    [Description("Graphics smoothing mode")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public SmoothingMode SmoothingMode
-    {
-        get => tmp_smoothing_mode;
-        set
-        {
-            if (value != SmoothingMode.Invalid) tmp_smoothing_mode = value;
-            Refresh();
-        }
-    }
-    //
-    private TextRenderingHint tmp_text_rendering_hint;
-    [Category("FScrollBar")]
-    [Description("Graphics text rendering hint")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public TextRenderingHint TextRenderingHint
-    {
-        get => tmp_text_rendering_hint;
-        set
-        {
-            tmp_text_rendering_hint = value;
-            Refresh();
-        }
-    }
-    //
-    private Style tmp_fscrollbar_style = Style.Default;
+
+    // --- Style ---
+
     [Category("FScrollBar")]
     [Description("Control style")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Style FScrollBarStyle
+    public ControlStyleMode ControlStyle
     {
-        get => tmp_fscrollbar_style;
+        get;
         set
         {
-            tmp_fscrollbar_style = value;
-            switch (tmp_fscrollbar_style)
+            field = value;
+            switch (field)
             {
-                case Style.Default:
+                case ControlStyleMode.Default:
                     Size = new(26, 300);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
-
                     Value = 0;
                     Minimum = 0;
                     Maximum = 100;
-                    OrientationValue = Orientation.Vertical;
+                    Orientation = System.Windows.Forms.Orientation.Vertical;
                     ThumbSize = 60;
                     SmallStep = 1;
                     RGB = false;
-                    Background = true;
-                    BackgroundPen = true;
-                    Background_WidthPen = 3F;
+                    ShowBackground = true;
+                    ShowBorder = true;
+                    BorderWidth = 3F;
                     Rounding = true;
-                    RoundingInt = 7;
-                    Timer_RGB = 300;
-                    ColorScrollBar = Color.FromArgb(29, 200, 238);
-                    ColorScrollBar_Transparency = 255;
-                    ColorBackground = Color.FromArgb(37, 52, 68);
-                    ColorBackground_Pen = Color.FromArgb(29, 200, 238);
+                    CornerRadius = 7;
+                    RgbUpdateInterval = 300;
+                    ThumbColor = Color.FromArgb(29, 200, 238);
+                    ThumbOpacity = 255;
+                    BackgroundColor = Color.FromArgb(37, 52, 68);
+                    BorderColor = Color.FromArgb(29, 200, 238);
                     Lighting = false;
-                    ColorLighting = Color.FromArgb(29, 200, 238);
-                    Alpha = 50;
-                    PenWidth = 10;
-                    LinearGradient_Background = false;
-                    ColorBackground_1 = Color.FromArgb(37, 52, 68);
-                    ColorBackground_2 = Color.FromArgb(41, 63, 86);
-                    LinearGradientPen = false;
-                    ColorPen_1 = Color.FromArgb(37, 52, 68);
-                    ColorPen_2 = Color.FromArgb(41, 63, 86);
-                    LinearGradient_Value = false;
-                    ColorBackground_Value_1 = Color.FromArgb(28, 200, 238);
-                    ColorBackground_Value_2 = Color.FromArgb(100, 208, 232);
+                    LightingColor = Color.FromArgb(29, 200, 238);
+                    LightingAlpha = 50;
+                    LightingWidth = 10;
+                    UseGradientBackground = false;
+                    GradientColor1 = Color.FromArgb(37, 52, 68);
+                    GradientColor2 = Color.FromArgb(41, 63, 86);
+                    UseGradientBorder = false;
+                    GradientBorderColor1 = Color.FromArgb(37, 52, 68);
+                    GradientBorderColor2 = Color.FromArgb(41, 63, 86);
+                    UseGradientFill = false;
+                    GradientFillColor1 = Color.FromArgb(28, 200, 238);
+                    GradientFillColor2 = Color.FromArgb(100, 208, 232);
                     SmoothingMode = SmoothingMode.HighQuality;
                     TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
                     break;
-                case Style.Custom:
+                case ControlStyleMode.Custom:
                     break;
-                case Style.Random:
-                    HelpEngine.GetRandom random = new();
-                    Background = random.Bool();
-                    Rounding = random.Bool();
-                    if (Rounding) RoundingInt = random.Int(2, 10);
-                    if (Background) ColorBackground = random.ColorArgb(random.Int(0, 255));
-                    BackgroundPen = random.Bool();
-                    if (BackgroundPen)
+                case ControlStyleMode.Random:
+                    ShowBackground = HelpEngine.RandomBool();
+                    Rounding = HelpEngine.RandomBool();
+                    if (Rounding) CornerRadius = HelpEngine.RandomInt(2, 10);
+                    if (ShowBackground) BackgroundColor = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
+                    ShowBorder = HelpEngine.RandomBool();
+                    if (ShowBorder)
                     {
-                        Background_WidthPen = random.Float(1, 3);
-                        ColorBackground_Pen = random.ColorArgb(random.Int(0, 255));
+                        BorderWidth = HelpEngine.RandomFloat(1, 3);
+                        BorderColor = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                     }
-                    Lighting = random.Bool();
-                    if (Lighting) ColorLighting = random.ColorArgb();
-                    LinearGradient_Background = random.Bool();
-                    if (LinearGradient_Background)
+                    Lighting = HelpEngine.RandomBool();
+                    if (Lighting) LightingColor = HelpEngine.RandomColor();
+                    UseGradientBackground = HelpEngine.RandomBool();
+                    if (UseGradientBackground)
                     {
-                        ColorBackground_1 = random.ColorArgb();
-                        ColorBackground_2 = random.ColorArgb();
+                        GradientColor1 = HelpEngine.RandomColor();
+                        GradientColor2 = HelpEngine.RandomColor();
                     }
-                    LinearGradient_Value = random.Bool();
-                    if (LinearGradient_Value)
+                    UseGradientFill = HelpEngine.RandomBool();
+                    if (UseGradientFill)
                     {
-                        ColorBackground_Value_1 = random.ColorArgb();
-                        ColorBackground_Value_2 = random.ColorArgb();
+                        GradientFillColor1 = HelpEngine.RandomColor();
+                        GradientFillColor2 = HelpEngine.RandomColor();
                     }
-                    LinearGradientPen = random.Bool();
-                    if (LinearGradientPen)
+                    UseGradientBorder = HelpEngine.RandomBool();
+                    if (UseGradientBorder)
                     {
-                        ColorPen_1 = random.ColorArgb();
-                        ColorPen_2 = random.ColorArgb();
+                        GradientBorderColor1 = HelpEngine.RandomColor();
+                        GradientBorderColor2 = HelpEngine.RandomColor();
                     }
-                    ColorScrollBar = random.ColorArgb();
-                    ColorScrollBar_Transparency = random.Int(0, 255);
+                    ThumbColor = HelpEngine.RandomColor();
+                    ThumbOpacity = HelpEngine.RandomInt(10, 255);
                     break;
             }
             Refresh();
         }
     }
+
     #endregion
 
-    #region INITIALIZATION
+    #region Initialization
+
     public FScrollBar()
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         DoubleBuffered = true;
 
-        Tag = "FC_UI";
-        FScrollBarStyle = Style.Default;
-        FScrollBarStyle = Style.Custom;
+        ControlStyle = ControlStyleMode.Default;
+        ControlStyle = ControlStyleMode.Custom;
 
-        OnSizeChanged(null);
+        OnSizeChanged(EventArgs.Empty);
     }
+
     #endregion
 
-    #region EVENTS
+    #region Events
+
     protected override void OnPaint(PaintEventArgs e)
     {
         try
         {
-            Settings_Load(e.Graphics);
-            Draw_Background(e.Graphics);
+            ApplyGraphicsSettings(e.Graphics);
+            DrawBackground(e.Graphics);
         }
-        catch (Exception er) { HelpEngine.MSB_Error($"[{Name}] Error: \n{er}"); }
+        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
     }
+
     public virtual void OnScroll(ScrollEventType type = ScrollEventType.ThumbPosition)
     {
         ValueChanged?.Invoke(this, EventArgs.Empty);
     }
+
     protected override void OnMouseDown(MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left) MouseScroll(e);
+        if (e.Button == MouseButtons.Left) HandleMouseScroll(e);
     }
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left) MouseScroll(e);
+        if (e.Button == MouseButtons.Left) HandleMouseScroll(e);
     }
+
     protected override void OnSizeChanged(EventArgs e)
     {
-        int tmp = (int)((BackgroundPen ? Background_WidthPen : 0) + (Lighting ? (PenWidth) / 4 : 0));
-        size_fscrollbar = new(Width - tmp * 2, Height - tmp * 2);
-        rectangle_region = new(tmp, tmp, size_fscrollbar.Width, size_fscrollbar.Height);
+        RecalculateRegion();
     }
-    private void MouseScroll(MouseEventArgs e)
-    {
-        int value = Value;
 
-        switch (OrientationValue)
+    private void HandleMouseScroll(MouseEventArgs e)
+    {
+        int newValue = Value;
+
+        switch (Orientation)
         {
-            case Orientation.Vertical:
-                if (e.Y < 0) value -= SmallStep;
-                else if (e.Y > rectangle_region.Height) value += SmallStep;
-                else value = Maximum * (e.Y - ThumbSize / 2) / (rectangle_region.Height - ThumbSize);
-                rectangle_value = new(
-                rectangle_region.X,
-                rectangle_region.Y + (Value * (rectangle_region.Height - ThumbSize) / Maximum),
-                rectangle_region.Width,
-                ThumbSize);
+            case System.Windows.Forms.Orientation.Vertical:
+                if (e.Y < 0) newValue -= SmallStep;
+                else if (e.Y > _regionRect.Height) newValue += SmallStep;
+                else newValue = Maximum * (e.Y - ThumbSize / 2) / (_regionRect.Height - ThumbSize);
+                _thumbRect = new(
+                    _regionRect.X,
+                    _regionRect.Y + Value * (_regionRect.Height - ThumbSize) / Maximum,
+                    _regionRect.Width,
+                    ThumbSize);
                 break;
-            case Orientation.Horizontal:
-                if (e.X < 0) value -= SmallStep;
-                else if (e.X > rectangle_region.Width) value += SmallStep;
-                else value = Maximum * (e.X - ThumbSize / 2) / (rectangle_region.Width - ThumbSize);
-                rectangle_value = new(
-                rectangle_region.X + (Value * (rectangle_region.Width - ThumbSize) / Maximum),
-                rectangle_region.Y,
-                ThumbSize,
-                rectangle_region.Height);
+            case System.Windows.Forms.Orientation.Horizontal:
+                if (e.X < 0) newValue -= SmallStep;
+                else if (e.X > _regionRect.Width) newValue += SmallStep;
+                else newValue = Maximum * (e.X - ThumbSize / 2) / (_regionRect.Width - ThumbSize);
+                _thumbRect = new(
+                    _regionRect.X + Value * (_regionRect.Width - ThumbSize) / Maximum,
+                    _regionRect.Y,
+                    ThumbSize,
+                    _regionRect.Height);
                 break;
         }
-        Value = Math.Max(0, Math.Min(Maximum, value));
+        Value = Math.Max(0, Math.Min(Maximum, newValue));
     }
 
     #endregion
 
-    #region DRAWING METHODS
-    private void Settings_Load(Graphics graphics)
+    #region Drawing
+
+    private void DrawBackground(Graphics formGraphics)
     {
-        BackColor = Color.Transparent;
+        float roundingValue = PrepareGeometry(Height);
 
-        graphics.SmoothingMode = SmoothingMode;
-        graphics.TextRenderingHint = TextRenderingHint;
-    }
-    private void Draw_Background(Graphics graphics_form)
-    {
-        float roundingValue;
-        void BaseLoading()
+        // Border layer
+        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        formGraphics.DrawImage(borderLayer, PointF.Empty);
+
+        // Content layer
+        Bitmap contentBitmap = new(Width, Height);
+        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            //Rounding
-            roundingValue = 0.1F;
-            if (Rounding && RoundingInt > 0)
-            {
-                roundingValue = Height / 100F * RoundingInt;
-            }
-            //RoundedRectangle
-            graphicsPath = DrawEngine.RoundedRectangle(rectangle_region, roundingValue);
+            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
+                _regionRect.X - (int)(2 + BorderWidth),
+                _regionRect.Y - (int)(2 + BorderWidth),
+                _regionRect.Width + (int)(2 + BorderWidth) * 2,
+                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using Region clipRegion = new(clipPath);
+            g.Clip = clipRegion;
 
-            //Region
-            using GraphicsPath regionPath = DrawEngine.RoundedRectangle(new Rectangle(
-            0, 0,
-            Width, Height),
-            roundingValue);
-            Region = new Region(regionPath);
-        }
-        Bitmap Layer_1()
-        {
-            Bitmap bitmap = new(Width, Height);
-            using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode, TextRenderingHint);
-
-            //Shadow
-            if (Lighting)
+            if (ShowBackground)
             {
-                using GraphicsPath shadowPath = DrawEngine.RoundedRectangle(rectangle_region, roundingValue);
-                DrawEngine.DrawBlurred(graphics, ColorLighting, shadowPath, Alpha, PenWidth);
-            }
-
-            //Background border
-            if (Background_WidthPen != 0 && BackgroundPen)
-            {
-                if (LinearGradientPen)
+                if (UseGradientBackground)
                 {
-                    using LinearGradientBrush penBrush = new(rectangle_region, ColorPen_1, ColorPen_2, 360);
-                    using Pen pen = new(penBrush, Background_WidthPen);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    graphics.DrawPath(pen, graphicsPath);
+                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
+                    g.FillPath(brush, _shapePath);
                 }
                 else
                 {
-                    using Pen pen = new(RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorBackground_Pen, Background_WidthPen);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    graphics.DrawPath(pen, graphicsPath);
+                    using SolidBrush brush = new(BackgroundColor);
+                    g.FillPath(brush, _shapePath);
                 }
             }
 
-            return bitmap;
+            DrawThumb(g, roundingValue);
         }
-        Bitmap Layer_2()
-        {
-            Bitmap bitmap = new(Width, Height);
-            using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode, TextRenderingHint);
-
-            //Region_Clip
-            using GraphicsPath clipPath = DrawEngine.RoundedRectangle(new Rectangle(
-                rectangle_region.X - (int)(2 + Background_WidthPen),
-                rectangle_region.Y - (int)(2 + Background_WidthPen),
-                rectangle_region.Width + (int)(2 + Background_WidthPen) * 2,
-                rectangle_region.Height + (int)(2 + Background_WidthPen) * 2), Rounding ? roundingValue : 0.1F);
-            graphics.Clip = new Region(clipPath);
-
-            //Background
-            if (Background)
-            {
-                if (LinearGradient_Background)
-                {
-                    using LinearGradientBrush brush = new(rectangle_region, ColorBackground_1, ColorBackground_2, 360);
-                    graphics.FillPath(brush, graphicsPath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(ColorBackground);
-                    graphics.FillPath(brush, graphicsPath);
-                }
-            }
-
-            //Additional
-            Draw_Bar(graphics, roundingValue);
-
-            return bitmap;
-        }
-
-        BaseLoading();
-        using Bitmap layer1 = Layer_1();
-        graphics_form.DrawImage(layer1, new PointF(0, 0));
-        using Bitmap layer2 = Layer_2();
-        graphics_form.DrawImage(layer2, new PointF(0, 0));
+        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
     }
-    private void Draw_Bar(Graphics graphics, float roundingValue)
+
+    private void DrawThumb(Graphics graphics, float roundingValue)
     {
         if (Maximum <= 0) return;
-        rectangle_value = new(2, 2, rectangle_region.Width, ThumbSize);
+        _thumbRect = new(2, 2, _regionRect.Width, ThumbSize);
 
-        switch (OrientationValue)
+        switch (Orientation)
         {
-            case Orientation.Vertical:
-                rectangle_value = new(
-                rectangle_region.X,
-                rectangle_region.Y + (Value * (rectangle_region.Height - ThumbSize) / Maximum),
-                rectangle_region.Width,
-                ThumbSize);
+            case System.Windows.Forms.Orientation.Vertical:
+                _thumbRect = new(
+                    _regionRect.X,
+                    _regionRect.Y + Value * (_regionRect.Height - ThumbSize) / Maximum,
+                    _regionRect.Width,
+                    ThumbSize);
                 break;
-            case Orientation.Horizontal:
-                rectangle_value = new(
-                rectangle_region.X + (Value * (rectangle_region.Width - ThumbSize) / Maximum),
-                rectangle_region.Y,
-                ThumbSize,
-                rectangle_region.Height);
+            case System.Windows.Forms.Orientation.Horizontal:
+                _thumbRect = new(
+                    _regionRect.X + Value * (_regionRect.Width - ThumbSize) / Maximum,
+                    _regionRect.Y,
+                    ThumbSize,
+                    _regionRect.Height);
                 break;
         }
 
-        int tmp = 1;
-        rectangle_value.X -= tmp;
-        rectangle_value.Y -= tmp;
-        rectangle_value.Width += tmp * 2;
-        rectangle_value.Height += tmp * 2;
-        roundingValue += tmp * 2;
+        const int offset = 1;
+        _thumbRect.X -= offset;
+        _thumbRect.Y -= offset;
+        _thumbRect.Width += offset * 2;
+        _thumbRect.Height += offset * 2;
+        roundingValue += offset * 2;
 
-        using GraphicsPath barPath = DrawEngine.RoundedRectangle(rectangle_value, roundingValue);
-        if (LinearGradient_Value)
+        using GraphicsPath thumbPath = DrawEngine.CreateRoundedPath(_thumbRect, roundingValue);
+
+        if (UseGradientFill)
         {
-            using LinearGradientBrush brush = new(rectangle_region,
-                Color.FromArgb(ColorScrollBar_Transparency, RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorBackground_Value_1),
-                Color.FromArgb(ColorScrollBar_Transparency, RGB ? DrawEngine.HSV_To_RGB(h + 20, 1f, 1f) : ColorBackground_Value_2), 360);
-            graphics.FillPath(brush, barPath);
+            using LinearGradientBrush brush = new(_regionRect,
+                Color.FromArgb(ThumbOpacity, GetRgbOrColor(GradientFillColor1)),
+                Color.FromArgb(ThumbOpacity, RGB ? DrawEngine.HsvToRgb(_hue + 20, 1f, 1f) : GradientFillColor2),
+                360);
+            graphics.FillPath(brush, thumbPath);
         }
         else
         {
-            using SolidBrush brush = new(
-                Color.FromArgb(ColorScrollBar_Transparency, RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorScrollBar));
-            graphics.FillPath(brush, barPath);
+            using SolidBrush brush = new(Color.FromArgb(ThumbOpacity, GetRgbOrColor(ThumbColor)));
+            graphics.FillPath(brush, thumbPath);
         }
     }
+
     #endregion
 }

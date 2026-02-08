@@ -42,9 +42,9 @@ public class FProgressBarTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundIsTrue()
+    public void Constructor_DefaultStyle_ShowBackgroundIsTrue()
     {
-        Assert.True(_progressBar.Background);
+        Assert.True(_progressBar.ShowBackground);
     }
 
     [Fact]
@@ -118,30 +118,30 @@ public class FProgressBarTests : IDisposable
     [InlineData(0)]
     [InlineData(50)]
     [InlineData(100)]
-    public void RoundingInt_ValidValues_AreAccepted(int value)
+    public void CornerRadius_ValidValues_AreAccepted(int value)
     {
-        _progressBar.RoundingInt = value;
+        _progressBar.CornerRadius = value;
 
-        Assert.Equal(value, _progressBar.RoundingInt);
+        Assert.Equal(value, _progressBar.CornerRadius);
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]
-    public void RoundingInt_InvalidValues_AreRejected(int value)
+    public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _progressBar.RoundingInt;
-        _progressBar.RoundingInt = value;
+        int original = _progressBar.CornerRadius;
+        _progressBar.CornerRadius = value;
 
-        Assert.Equal(original, _progressBar.RoundingInt);
+        Assert.Equal(original, _progressBar.CornerRadius);
     }
 
     [Fact]
-    public void ColorProgressBar_SetValue_ReturnsSetValue()
+    public void FillColor_SetValue_ReturnsSetValue()
     {
-        _progressBar.ColorProgressBar = Color.Red;
+        _progressBar.FillColor = Color.Red;
 
-        Assert.Equal(Color.Red, _progressBar.ColorProgressBar);
+        Assert.Equal(Color.Red, _progressBar.FillColor);
     }
 
     [Fact]

@@ -107,47 +107,47 @@ public class FScrollBarTests : IDisposable
     [InlineData(0)]
     [InlineData(50)]
     [InlineData(100)]
-    public void RoundingInt_ValidValues_AreAccepted(int value)
+    public void CornerRadius_ValidValues_AreAccepted(int value)
     {
-        _scrollBar.RoundingInt = value;
+        _scrollBar.CornerRadius = value;
 
-        Assert.Equal(value, _scrollBar.RoundingInt);
+        Assert.Equal(value, _scrollBar.CornerRadius);
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]
-    public void RoundingInt_InvalidValues_AreRejected(int value)
+    public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _scrollBar.RoundingInt;
-        _scrollBar.RoundingInt = value;
+        int original = _scrollBar.CornerRadius;
+        _scrollBar.CornerRadius = value;
 
-        Assert.Equal(original, _scrollBar.RoundingInt);
+        Assert.Equal(original, _scrollBar.CornerRadius);
     }
 
     [Fact]
-    public void ColorScrollBar_SetValue_ReturnsSetValue()
+    public void ThumbColor_SetValue_ReturnsSetValue()
     {
-        _scrollBar.ColorScrollBar = Color.Green;
+        _scrollBar.ThumbColor = Color.Green;
 
-        Assert.Equal(Color.Green, _scrollBar.ColorScrollBar);
+        Assert.Equal(Color.Green, _scrollBar.ThumbColor);
     }
 
     [Fact]
-    public void ColorScrollBarTransparency_ValidRange_IsAccepted()
+    public void ThumbOpacity_ValidRange_IsAccepted()
     {
-        _scrollBar.ColorScrollBar_Transparency = 128;
+        _scrollBar.ThumbOpacity = 128;
 
-        Assert.Equal(128, _scrollBar.ColorScrollBar_Transparency);
+        Assert.Equal(128, _scrollBar.ThumbOpacity);
     }
 
     [Fact]
-    public void ColorScrollBarTransparency_BelowMin_IsRejected()
+    public void ThumbOpacity_BelowMin_IsRejected()
     {
-        _scrollBar.ColorScrollBar_Transparency = 100;
-        _scrollBar.ColorScrollBar_Transparency = 5;
+        _scrollBar.ThumbOpacity = 100;
+        _scrollBar.ThumbOpacity = 5;
 
-        Assert.Equal(100, _scrollBar.ColorScrollBar_Transparency);
+        Assert.Equal(100, _scrollBar.ThumbOpacity);
     }
 
     [Fact]

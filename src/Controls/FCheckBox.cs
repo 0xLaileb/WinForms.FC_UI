@@ -7,713 +7,392 @@ namespace FC_UI.Controls;
 
 [ToolboxBitmap(typeof(CheckBox))]
 [Description("Allows the user to select or deselect the corresponding option.")]
-public partial class FCheckBox : UserControl
+public partial class FCheckBox : FControlBase
 {
-    #region VARIABLES
-    private float h = 0;
-    private Rectangle rectangle_region = new();
-    private GraphicsPath graphicsPath = new();
-    private int temp = 0;
-    private bool Mouse_Enter = false;
-    private Size size_fcheckbox = new();
-    private System.EventHandler? _rgbTickHandler;
-    private System.EventHandler? _effectTickHandler;
-    public enum Style
-    {
-        Default,
-        Custom,
-        Random
-    }
+    #region Fields
+
+    private int _animationSize;
+    private bool _isMouseHovered;
+    private Size _checkboxSize = new();
+    private EventHandler? _effectTickHandler;
+
     #endregion
 
-    #region SETTINGS
-    public delegate void EventHandler();
+    #region Properties
+
+    public delegate void CheckedChangedHandler();
+
     [Category("FC_UI")]
     [Description("Occurs on every Checked property change.")]
-    public event EventHandler CheckedChanged = delegate { };
+    public event CheckedChangedHandler CheckedChanged = delegate { };
 
-    private bool tmp_checked_status;
     [Category("FCheckBox")]
     [Description("Enable/Disable checked status")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public bool Checked
     {
-        get => tmp_checked_status;
+        get;
         set
         {
-            tmp_checked_status = value;
+            field = value;
             CheckedChanged();
             Refresh();
         }
     }
-    //
-    private string tmp_text_button;
+
     [Category("FCheckBox")]
     [Description("Control text")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public string TextButton
+    public string DisplayText
     {
-        get => tmp_text_button;
-        set
-        {
-            tmp_text_button = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_rgb_status;
-    [Category("FCheckBox")]
-    [Description("Enable/Disable RGB")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool RGB
-    {
-        get => tmp_rgb_status;
-        set
-        {
-            tmp_rgb_status = value;
+        get;
+        set { field = value; Refresh(); }
+    } = string.Empty;
 
-            // Unsubscribe old handler to prevent event handler leak
-            timer_rgb.Stop();
-            if (_rgbTickHandler is not null)
-            {
-                timer_rgb.Tick -= _rgbTickHandler;
-                _rgbTickHandler = null;
-            }
-
-            if (tmp_rgb_status)
-            {
-                if (!DrawEngine.timer_global_rgb.Enabled)
-                {
-                    _rgbTickHandler = (sender, args) =>
-                    {
-                        h += 4;
-                        if (h >= 360) h = 0;
-                        Refresh();
-                    };
-                    timer_rgb.Tick += _rgbTickHandler;
-                    timer_rgb.Start();
-                }
-            }
-            else
-            {
-                Refresh();
-            }
-        }
-    }
-    //
-    private bool tmp_background;
-    [Category("FCheckBox")]
-    [Description("Enable/Disable background")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool Background
-    {
-        get => tmp_background;
-        set
-        {
-            tmp_background = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_rounding_status;
-    [Category("FCheckBox")]
-    [Description("Enable/Disable rounding")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool Rounding
-    {
-        get => tmp_rounding_status;
-        set
-        {
-            tmp_rounding_status = value;
-            Refresh();
-        }
-    }
-    //
-    private int tmp_rounding_int;
-    [Category("FCheckBox")]
-    [Description("Rounding percentage")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int RoundingInt
-    {
-        get => tmp_rounding_int;
-        set
-        {
-            if (value >= 0 && value <= 100)
-            {
-                tmp_rounding_int = value;
-                Refresh();
-            }
-        }
-    }
-    //
-    private Color tmp_color_click_circle;
-    [Category("Effects")]
-    [Description("Click animation color")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color Effect_1_ColorBackground
-    {
-        get => tmp_color_click_circle;
-        set
-        {
-            tmp_color_click_circle = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_background;
-    [Category("FCheckBox")]
-    [Description("Background color")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground
-    {
-        get => tmp_color_background;
-        set
-        {
-            tmp_color_background = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_background_pen;
-    [Category("BorderStyle")]
-    [Description("Enable/Disable border")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool BackgroundPen
-    {
-        get => tmp_background_pen;
-        set
-        {
-            tmp_background_pen = value;
-            OnSizeChanged(null);
-            Refresh();
-        }
-    }
-    //
-    private float background_width_pen;
-    [Category("BorderStyle")]
-    [Description("Border width")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public float Background_WidthPen
-    {
-        get => background_width_pen;
-        set
-        {
-            background_width_pen = value;
-            OnSizeChanged(null);
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_background_pen;
-    [Category("BorderStyle")]
-    [Description("Border color")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_Pen
-    {
-        get => tmp_color_background_pen;
-        set
-        {
-            tmp_color_background_pen = value;
-            Refresh();
-        }
-    }
-    //
-    private Color color_checked;
     [Category("FCheckBox")]
     [Description("Checkmark color")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public Color ColorChecked
     {
-        get => color_checked;
-        set
-        {
-            color_checked = value;
-            Refresh();
-        }
+        get;
+        set { field = value; Refresh(); }
     }
-    //
+
+    // --- Effects ---
+
+    [Category("Effects")]
+    [Description("Click animation color")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public Color ClickEffectColor
+    {
+        get;
+        set { field = value; Refresh(); }
+    }
+
     [Category("Effects")]
     [DefaultValue(true)]
     [Description("Enable/Disable circle effect on hover/activation")]
-    public bool Effect_1 { get; set; }
-    //
-    private int effect1_transparency;
+    public bool EnableClickEffect { get; set; }
+
     [Category("Effects")]
-    [Description("Effect_1 transparency")]
+    [Description("Click effect opacity (1-255)")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int Effect_1_Transparency
+    public int ClickEffectOpacity
     {
-        get => effect1_transparency;
-        set
-        {
-            if (value > 0 && value <= 255) effect1_transparency = value;
-        }
+        get;
+        set { if (value is > 0 and <= 255) field = value; }
     }
-    //
+
     [Category("Effects")]
-    [Description("Enable/Disable white overlay effect")]
+    [Description("Enable/Disable hover overlay effect")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool Effect_2 { get; set; }
-    //
-    private int effect2_transparency;
+    public bool EnableHoverEffect { get; set; }
+
     [Category("Effects")]
-    [Description("Effect_2 transparency")]
+    [Description("Hover effect opacity (1-255)")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int Effect_2_Transparency
+    public int HoverEffectOpacity
     {
-        get => effect2_transparency;
-        set
-        {
-            if (value > 0 && value <= 255) effect2_transparency = value;
-        }
+        get;
+        set { if (value is > 0 and <= 255) field = value; }
     }
-    //
+
     [Category("Effects")]
-    [Description("Effect color")]
+    [Description("Hover effect color")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color Effect_2_ColorBackground { get; set; }
-    //
-    private readonly Timer timer_effect_1 = new() { Interval = 1 };
+    public Color HoverEffectColor { get; set; }
+
+    // --- Timers ---
+
+    private readonly Timer _clickAnimationTimer = new() { Interval = 1 };
+
     [Category("Timers")]
-    [Description("Effect_1 speed (triggers repaint)")]
+    [Description("Click effect animation speed")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int Timer_Effect_1
+    public int ClickEffectInterval
     {
-        get => timer_effect_1.Interval;
-        set => timer_effect_1.Interval = value;
+        get => _clickAnimationTimer.Interval;
+        set => _clickAnimationTimer.Interval = value;
     }
-    //
-    private readonly Timer timer_rgb = new() { Interval = 300 };
-    [Category("Timers")]
-    [Description("RGB mode update speed (triggers repaint)")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public int Timer_RGB
-    {
-        get => timer_rgb.Interval;
-        set => timer_rgb.Interval = value;
-    }
-    //
-    private bool tmp_lineargradient_Background_status;
-    [Category("LinearGradient")]
-    [Description("Enable/Disable background gradient")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool LinearGradient_Background
-    {
-        get => tmp_lineargradient_Background_status;
-        set
-        {
-            tmp_lineargradient_Background_status = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_1_for_gradient;
-    [Category("LinearGradient")]
-    [Description("Gradient color #1")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_1
-    {
-        get => tmp_color_1_for_gradient;
-        set
-        {
-            tmp_color_1_for_gradient = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_2_for_gradient;
-    [Category("LinearGradient")]
-    [Description("Gradient color #2")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorBackground_2
-    {
-        get => tmp_color_2_for_gradient;
-        set
-        {
-            tmp_color_2_for_gradient = value;
-            Refresh();
-        }
-    }
-    //
-    private bool tmp_lineargradient_pen_status;
-    [Category("LinearGradient")]
-    [Description("Enable/Disable border gradient")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public bool LinearGradientPen
-    {
-        get => tmp_lineargradient_pen_status;
-        set
-        {
-            tmp_lineargradient_pen_status = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_1_for_gradient_pen;
-    [Category("LinearGradient")]
-    [Description("Border gradient color #1")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorPen_1
-    {
-        get => tmp_color_1_for_gradient_pen;
-        set
-        {
-            tmp_color_1_for_gradient_pen = value;
-            Refresh();
-        }
-    }
-    //
-    private Color tmp_color_2_for_gradient_pen;
-    [Category("LinearGradient")]
-    [Description("Border gradient color #2")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Color ColorPen_2
-    {
-        get => tmp_color_2_for_gradient_pen;
-        set
-        {
-            tmp_color_2_for_gradient_pen = value;
-            Refresh();
-        }
-    }
-    //
-    private SmoothingMode tmp_smoothing_mode;
-    [Category("FCheckBox")]
-    [Description("Graphics smoothing mode")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public SmoothingMode SmoothingMode
-    {
-        get => tmp_smoothing_mode;
-        set
-        {
-            if (value != SmoothingMode.Invalid) tmp_smoothing_mode = value;
-            Refresh();
-        }
-    }
-    //
-    private TextRenderingHint tmp_text_rendering_hint;
-    [Category("FCheckBox")]
-    [Description("Graphics text rendering hint")]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public TextRenderingHint TextRenderingHint
-    {
-        get => tmp_text_rendering_hint;
-        set
-        {
-            tmp_text_rendering_hint = value;
-            Refresh();
-        }
-    }
-    //
-    private Style tmp_fcheckbox_style = Style.Default;
+
+    // --- Style ---
+
     [Category("FCheckBox")]
     [Description("Control style")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public Style FCheckBoxStyle
+    public ControlStyleMode ControlStyle
     {
-        get => tmp_fcheckbox_style;
+        get;
         set
         {
-            tmp_fcheckbox_style = value;
-            switch (tmp_fcheckbox_style)
+            field = value;
+            switch (field)
             {
-                case Style.Default:
+                case ControlStyleMode.Default:
                     Size = new(140, 45);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
-
                     Checked = false;
-                    TextButton = "FCheckBox";
+                    DisplayText = "FCheckBox";
                     RGB = false;
-                    Background = true;
+                    ShowBackground = true;
                     Rounding = true;
-                    RoundingInt = 100;
-                    Effect_1_ColorBackground = Color.FromArgb(29, 200, 238);
-                    ColorBackground = Color.FromArgb(37, 52, 68);
-                    BackgroundPen = true;
-                    Background_WidthPen = 2F;
-                    ColorBackground_Pen = Color.FromArgb(29, 200, 238);
+                    CornerRadius = 100;
+                    ClickEffectColor = Color.FromArgb(29, 200, 238);
+                    BackgroundColor = Color.FromArgb(37, 52, 68);
+                    ShowBorder = true;
+                    BorderWidth = 2F;
+                    BorderColor = Color.FromArgb(29, 200, 238);
                     ColorChecked = Color.FromArgb(29, 200, 238);
-                    Effect_1 = true;
-                    Effect_1_Transparency = 25;
-                    Effect_2 = true;
-                    Effect_2_Transparency = 15;
-                    Effect_2_ColorBackground = Color.White;
-                    Timer_Effect_1 = 1;
-                    Timer_RGB = 300;
-                    LinearGradient_Background = false;
-                    ColorBackground_1 = Color.FromArgb(37, 52, 68);
-                    ColorBackground_2 = Color.FromArgb(41, 63, 86);
-                    LinearGradientPen = false;
-                    ColorPen_1 = Color.FromArgb(37, 52, 68);
-                    ColorPen_2 = Color.FromArgb(41, 63, 86);
+                    EnableClickEffect = true;
+                    ClickEffectOpacity = 25;
+                    EnableHoverEffect = true;
+                    HoverEffectOpacity = 15;
+                    HoverEffectColor = Color.White;
+                    ClickEffectInterval = 1;
+                    RgbUpdateInterval = 300;
+                    UseGradientBackground = false;
+                    GradientColor1 = Color.FromArgb(37, 52, 68);
+                    GradientColor2 = Color.FromArgb(41, 63, 86);
+                    UseGradientBorder = false;
+                    GradientBorderColor1 = Color.FromArgb(37, 52, 68);
+                    GradientBorderColor2 = Color.FromArgb(41, 63, 86);
                     SmoothingMode = SmoothingMode.HighQuality;
                     TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
                     Font = HelpEngine.GetDefaultFont();
                     break;
-                case Style.Custom:
+                case ControlStyleMode.Custom:
                     break;
-                case Style.Random:
-                    HelpEngine.GetRandom random = new();
-                    Background = random.Bool();
-                    Rounding = random.Bool();
-                    if (Rounding) RoundingInt = random.Int(5, 90);
-                    if (Background) ColorBackground = random.ColorArgb(random.Int(0, 255));
-                    BackgroundPen = random.Bool();
-                    if (BackgroundPen)
+                case ControlStyleMode.Random:
+                    ShowBackground = HelpEngine.RandomBool();
+                    Rounding = HelpEngine.RandomBool();
+                    if (Rounding) CornerRadius = HelpEngine.RandomInt(5, 90);
+                    if (ShowBackground) BackgroundColor = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
+                    ShowBorder = HelpEngine.RandomBool();
+                    if (ShowBorder)
                     {
-                        Background_WidthPen = random.Float(1, 3);
-                        ColorBackground_Pen = random.ColorArgb(random.Int(0, 255));
-                        ColorChecked = random.ColorArgb(random.Int(0, 255));
+                        BorderWidth = HelpEngine.RandomFloat(1, 3);
+                        BorderColor = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
+                        ColorChecked = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                     }
-                    LinearGradient_Background = random.Bool();
-                    if (LinearGradient_Background)
+                    UseGradientBackground = HelpEngine.RandomBool();
+                    if (UseGradientBackground)
                     {
-                        ColorBackground_1 = random.ColorArgb();
-                        ColorBackground_2 = random.ColorArgb();
+                        GradientColor1 = HelpEngine.RandomColor();
+                        GradientColor2 = HelpEngine.RandomColor();
                     }
-                    LinearGradientPen = random.Bool();
-                    if (LinearGradientPen)
+                    UseGradientBorder = HelpEngine.RandomBool();
+                    if (UseGradientBorder)
                     {
-                        ColorPen_1 = random.ColorArgb();
-                        ColorPen_2 = random.ColorArgb();
+                        GradientBorderColor1 = HelpEngine.RandomColor();
+                        GradientBorderColor2 = HelpEngine.RandomColor();
                     }
                     break;
             }
             Refresh();
         }
     }
+
     #endregion
 
-    #region INITIALIZATION
+    #region Initialization
+
     public FCheckBox()
     {
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw |
-        ControlStyles.Selectable | ControlStyles.SupportsTransparentBackColor | ControlStyles.StandardDoubleClick, true);
-        DoubleBuffered = true;
-
-        Tag = "FC_UI";
-        FCheckBoxStyle = Style.Default;
-        FCheckBoxStyle = Style.Custom;
-
-        OnSizeChanged(null);
+        ControlStyle = ControlStyleMode.Default;
+        ControlStyle = ControlStyleMode.Custom;
+        OnSizeChanged(EventArgs.Empty);
     }
-    protected override CreateParams CreateParams //WS_CLIPCHILDREN
+
+    protected override CreateParams CreateParams
     {
         get
         {
-            CreateParams createParams = base.CreateParams;
-            createParams.ExStyle |= 0x02000000;
-            return createParams;
+            CreateParams cp = base.CreateParams;
+            cp.ExStyle |= 0x02000000; // WS_CLIPCHILDREN
+            return cp;
         }
     }
+
     #endregion
 
-    #region EVENTS
+    #region Events
+
     protected override void OnPaint(PaintEventArgs e)
     {
         try
         {
-            Settings_Load(e.Graphics);
-            Draw_Background(e.Graphics);
-            Draw_Text(e.Graphics);
+            ApplyGraphicsSettings(e.Graphics);
+            DrawBackground(e.Graphics);
+            DrawText(e.Graphics);
         }
-        catch (Exception er) { HelpEngine.MSB_Error($"[{Name}] Error: \n{er}"); }
+        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
     }
+
     protected override void OnMouseClick(MouseEventArgs e)
     {
         Checked = !Checked;
 
-        timer_effect_1.Stop();
-        // Remove old handler to prevent event handler leak
+        _clickAnimationTimer.Stop();
         if (_effectTickHandler is not null)
         {
-            timer_effect_1.Tick -= _effectTickHandler;
+            _clickAnimationTimer.Tick -= _effectTickHandler;
             _effectTickHandler = null;
         }
 
         if (e.Button == MouseButtons.Left)
         {
-            temp = size_fcheckbox.Width;
+            _animationSize = _checkboxSize.Width;
 
             if (Checked)
             {
                 _effectTickHandler = (sender, args) =>
                 {
-                    temp += 1;
+                    _animationSize += 1;
                     Refresh();
                 };
-                timer_effect_1.Tick += _effectTickHandler;
-                timer_effect_1.Start();
+                _clickAnimationTimer.Tick += _effectTickHandler;
+                _clickAnimationTimer.Start();
             }
             else Refresh();
         }
     }
+
     protected override void OnMouseEnter(EventArgs e)
     {
-        Mouse_Enter = true;
+        _isMouseHovered = true;
         Refresh();
     }
+
     protected override void OnMouseLeave(EventArgs e)
     {
-        timer_effect_1.Stop();
-        Mouse_Enter = false;
-        temp = 0;
-
+        _clickAnimationTimer.Stop();
+        _isMouseHovered = false;
+        _animationSize = 0;
         Refresh();
     }
+
     protected override void OnSizeChanged(EventArgs e)
     {
         Size = new(Size.Width, 45);
-        size_fcheckbox = new(21, 21);
-        rectangle_region = new(15, Size.Height / 2 - 12, size_fcheckbox.Width, size_fcheckbox.Height);
+        _checkboxSize = new(21, 21);
+        _regionRect = new(15, Size.Height / 2 - 12, _checkboxSize.Width, _checkboxSize.Height);
     }
+
     #endregion
 
-    #region DRAWING METHODS
-    private void Settings_Load(Graphics graphics)
-    {
-        BackColor = Color.Transparent;
+    #region Drawing
 
-        graphics.SmoothingMode = SmoothingMode;
-        graphics.TextRenderingHint = TextRenderingHint;
-    }
-    private void Draw_Background(Graphics graphics_form)
+    private void DrawBackground(Graphics formGraphics)
     {
         float roundingValue = 0.1F;
-        void BaseLoading()
-        {
-            // Rounding
-            if (Rounding && RoundingInt > 0)
-            {
-                roundingValue = size_fcheckbox.Height / 100F * RoundingInt;
-            }
-            // RoundedRectangle
-            graphicsPath = DrawEngine.RoundedRectangle(rectangle_region, roundingValue);
 
-            // Region
-            using GraphicsPath regionPath = DrawEngine.RoundedRectangle(new Rectangle(
-                0, 0,
-                Width, Height),
-                roundingValue);
-            Region?.Dispose();
-            Region = new Region(regionPath);
-        }
-        Bitmap Layer_1()
-        {
-            Bitmap bitmap = new(Width, Height);
-            using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode, TextRenderingHint);
+        // Prepare geometry
+        if (Rounding && CornerRadius > 0)
+            roundingValue = _checkboxSize.Height / 100F * CornerRadius;
 
-            // Background border
-            if (Background_WidthPen != 0 && BackgroundPen == true)
+        _shapePath?.Dispose();
+        _shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+
+        using GraphicsPath regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        Region?.Dispose();
+        Region = new Region(regionPath);
+
+        // Layer 1: Border
+        Bitmap borderBitmap = new(Width, Height);
+        using (Graphics graphics = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
+        {
+            if (BorderWidth != 0 && ShowBorder)
             {
-                if (LinearGradientPen)
+                if (UseGradientBorder)
                 {
-                    using LinearGradientBrush lgBrush = new(rectangle_region, ColorPen_1, ColorPen_2, 360);
-                    using Pen pen = new(lgBrush, Background_WidthPen);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    graphics.DrawPath(pen, graphicsPath);
+                    using LinearGradientBrush brush = new(_regionRect, GradientBorderColor1, GradientBorderColor2, 360);
+                    using Pen pen = new(brush, BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
+                    graphics.DrawPath(pen, _shapePath);
                 }
                 else
                 {
-                    using Pen pen = new(RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorBackground_Pen, Background_WidthPen);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    graphics.DrawPath(pen, graphicsPath);
+                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
+                    graphics.DrawPath(pen, _shapePath);
                 }
             }
-
-            return bitmap;
         }
-        Bitmap Layer_2()
+        using (borderBitmap) formGraphics.DrawImage(borderBitmap, PointF.Empty);
+
+        // Layer 2: Content
+        Bitmap contentBitmap = new(Width, Height);
+        using (Graphics graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            Bitmap bitmap = new(Width, Height);
-            using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode, TextRenderingHint);
+            if (EnableClickEffect) DrawClickAnimation(graphics);
+            if (EnableHoverEffect && _isMouseHovered) DrawHoverCircleOverlay(graphics);
 
-            // Effects
-            if (Effect_1) Draw_Animation_Circles(graphics);
-            if (Effect_2 && Mouse_Enter) Draw_Animation_WhiteBackground_CirclesStyle(graphics);
-
-            // Background
-            if (Background == true)
+            if (ShowBackground)
             {
-                if (LinearGradient_Background)
+                if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(rectangle_region, ColorBackground_1, ColorBackground_2, 360);
-                    graphics.FillPath(brush, graphicsPath);
+                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
+                    graphics.FillPath(brush, _shapePath);
                 }
                 else
                 {
-                    using SolidBrush brush = new(ColorBackground);
-                    graphics.FillPath(brush, graphicsPath);
+                    using SolidBrush brush = new(BackgroundColor);
+                    graphics.FillPath(brush, _shapePath);
                 }
             }
 
-            // Additional
-            if (Checked) Draw_Checked(graphics);
-
-            return bitmap;
+            if (Checked) DrawCheckMark(graphics);
         }
-
-        BaseLoading();
-        using Bitmap layer1 = Layer_1();
-        graphics_form.DrawImage(layer1, new PointF(0, 0));
-        using Bitmap layer2 = Layer_2();
-        graphics_form.DrawImage(layer2, new PointF(0, 0));
+        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
     }
-    private void Draw_Text(Graphics graphics)
+
+    private void DrawText(Graphics graphics)
     {
         using SolidBrush brush = new(ForeColor);
         graphics.DrawString(
-            TextButton,
-            Font,
-            brush,
-            new Rectangle((int)(25 + graphicsPath.GetBounds().Width), (Size.Height / 2) - (Font.Height / 2), 0, 0));
+            DisplayText, Font, brush,
+            new Rectangle((int)(25 + _shapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
     }
-    private void Draw_Checked(Graphics graphics)
+
+    private void DrawCheckMark(Graphics graphics)
     {
         using Font checkFont = new("Segoe MDL2 Assets", 10F, FontStyle.Regular);
-        using SolidBrush brush = new(RGB ? DrawEngine.HSV_To_RGB(h, 1f, 1f) : ColorChecked);
-        graphics.DrawString(
-            "\uE73E",
-            checkFont,
-            brush,
-            new Rectangle(15 + 3, (Size.Height / 2) - (25 / 2) + 5, 0, 0));
+        using SolidBrush brush = new(GetRgbOrColor(ColorChecked));
+        graphics.DrawString("\uE73E", checkFont, brush,
+            new Rectangle(15 + 3, Size.Height / 2 - 25 / 2 + 5, 0, 0));
     }
-    private void Draw_Animation_Circles(Graphics graphics)
+
+    private void DrawClickAnimation(Graphics graphics)
     {
-        int size_circles = 40;
-        if (temp < size_circles)
+        const int maxSize = 40;
+        if (_animationSize < maxSize)
         {
-            Rectangle rectangle_circles = new(
-                (15 + (25 / 2)) - (temp / 2),
-                ((Size.Height / 2) - (25 / 2) + (25 / 2)) - (temp / 2),
-                temp, temp);
-            rectangle_circles.X -= 2;
-            rectangle_circles.Y -= 2;
-            if (rectangle_circles.Width != 0 && rectangle_circles.Height != 0)
+            Rectangle circleRect = new(
+                15 + 25 / 2 - _animationSize / 2 - 2,
+                Size.Height / 2 - _animationSize / 2 - 2,
+                _animationSize, _animationSize);
+
+            if (circleRect is { Width: > 0, Height: > 0 })
             {
-                using SolidBrush brush = new(Color.FromArgb(Effect_1_Transparency, Effect_1_ColorBackground));
-                graphics.FillEllipse(brush, rectangle_circles);
+                using SolidBrush brush = new(Color.FromArgb(ClickEffectOpacity, ClickEffectColor));
+                graphics.FillEllipse(brush, circleRect);
             }
         }
     }
-    private void Draw_Animation_WhiteBackground_CirclesStyle(Graphics graphics)
-    {
-        int size_circles = 40;
 
-        Rectangle rectangle_circles = new(
-            (15 + (25 / 2)) - size_circles / 2,
-            ((Size.Height / 2) - (25 / 2) + (25 / 2)) - size_circles / 2,
-            size_circles, size_circles);
-        rectangle_circles.X -= 2;
-        rectangle_circles.Y -= 2;
-        if (rectangle_circles.Width != 0 && rectangle_circles.Height != 0)
+    private void DrawHoverCircleOverlay(Graphics graphics)
+    {
+        const int circleSize = 40;
+        Rectangle circleRect = new(
+            15 + 25 / 2 - circleSize / 2 - 2,
+            Size.Height / 2 - circleSize / 2 - 2,
+            circleSize, circleSize);
+
+        if (circleRect is { Width: > 0, Height: > 0 })
         {
-            using SolidBrush brush = new(Color.FromArgb(Effect_2_Transparency, Effect_2_ColorBackground));
-            graphics.FillEllipse(brush, rectangle_circles);
+            using SolidBrush brush = new(Color.FromArgb(HoverEffectOpacity, HoverEffectColor));
+            graphics.FillEllipse(brush, circleRect);
         }
     }
+
     #endregion
 }

@@ -48,7 +48,7 @@ public class HelpEngineTests
     {
         Bitmap bitmap = new(100, 100);
 
-        using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode.HighQuality, TextRenderingHint.ClearTypeGridFit);
+        using Graphics graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode.HighQuality, TextRenderingHint.ClearTypeGridFit);
 
         // SmoothingMode.HighQuality is an alias for AntiAlias in GDI+;
         // the getter always returns AntiAlias when either value is set.
@@ -61,7 +61,7 @@ public class HelpEngineTests
     {
         Bitmap bitmap = new(100, 100);
 
-        using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode.AntiAlias, TextRenderingHint.AntiAlias);
+        using Graphics graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode.AntiAlias, TextRenderingHint.AntiAlias);
 
         Assert.Equal(TextRenderingHint.AntiAlias, graphics.TextRenderingHint);
         bitmap.Dispose();
@@ -72,7 +72,7 @@ public class HelpEngineTests
     {
         Bitmap bitmap = new(50, 50);
 
-        using Graphics graphics = HelpEngine.GetGraphics(ref bitmap, SmoothingMode.Default, TextRenderingHint.SystemDefault);
+        using Graphics graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode.Default, TextRenderingHint.SystemDefault);
 
         Assert.NotNull(graphics);
         bitmap.Dispose();
@@ -80,36 +80,30 @@ public class HelpEngineTests
 
     #endregion
 
-    #region GetRandom Tests
+    #region Random Tests
 
     [Fact]
-    public void GetRandom_ColorArgb_DefaultAlpha_Returns255Alpha()
+    public void RandomColor_DefaultAlpha_Returns255Alpha()
     {
-        HelpEngine.GetRandom random = new();
-
-        Color color = random.ColorArgb();
+        Color color = HelpEngine.RandomColor();
 
         Assert.Equal(255, color.A);
     }
 
     [Fact]
-    public void GetRandom_ColorArgb_CustomAlpha_ReturnsCorrectAlpha()
+    public void RandomColor_CustomAlpha_ReturnsCorrectAlpha()
     {
-        HelpEngine.GetRandom random = new();
-
-        Color color = random.ColorArgb(128);
+        Color color = HelpEngine.RandomColor(128);
 
         Assert.Equal(128, color.A);
     }
 
     [Fact]
-    public void GetRandom_ColorArgb_ReturnsValidRGBRange()
+    public void RandomColor_ReturnsValidRGBRange()
     {
-        HelpEngine.GetRandom random = new();
-
         for (int i = 0; i < 100; i++)
         {
-            Color color = random.ColorArgb();
+            Color color = HelpEngine.RandomColor();
             Assert.InRange(color.R, 0, 255);
             Assert.InRange(color.G, 0, 255);
             Assert.InRange(color.B, 0, 255);
@@ -117,49 +111,41 @@ public class HelpEngineTests
     }
 
     [Fact]
-    public void GetRandom_Int_ReturnsWithinRange()
+    public void RandomInt_ReturnsWithinRange()
     {
-        HelpEngine.GetRandom random = new();
-
         for (int i = 0; i < 100; i++)
         {
-            int value = random.Int(10, 50);
+            int value = HelpEngine.RandomInt(10, 50);
             Assert.InRange(value, 10, 49);
         }
     }
 
     [Fact]
-    public void GetRandom_Int_MinEqualsMax_ReturnsSameValue()
+    public void RandomInt_MinEqualsMax_ReturnsSameValue()
     {
-        HelpEngine.GetRandom random = new();
-
-        // When min == max, Random.Next(min, max) returns min without throwing.
-        int result = random.Int(5, 5);
+        int result = HelpEngine.RandomInt(5, 5);
         Assert.Equal(5, result);
     }
 
     [Fact]
-    public void GetRandom_Float_ReturnsWithinRange()
+    public void RandomFloat_ReturnsWithinRange()
     {
-        HelpEngine.GetRandom random = new();
-
         for (int i = 0; i < 100; i++)
         {
-            float value = random.Float(1, 10);
+            float value = HelpEngine.RandomFloat(1, 10);
             Assert.True(value >= 1f && value < 10f, $"Value {value} was out of expected range [1, 10)");
         }
     }
 
     [Fact]
-    public void GetRandom_Bool_ReturnsBothValues()
+    public void RandomBool_ReturnsBothValues()
     {
-        HelpEngine.GetRandom random = new();
         bool sawTrue = false;
         bool sawFalse = false;
 
         for (int i = 0; i < 1000; i++)
         {
-            if (random.Bool()) sawTrue = true;
+            if (HelpEngine.RandomBool()) sawTrue = true;
             else sawFalse = true;
 
             if (sawTrue && sawFalse) break;

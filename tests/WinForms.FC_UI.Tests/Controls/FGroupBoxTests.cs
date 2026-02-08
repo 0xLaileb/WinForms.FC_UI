@@ -26,9 +26,9 @@ public class FGroupBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundIsTrue()
+    public void Constructor_DefaultStyle_ShowBackgroundIsTrue()
     {
-        Assert.True(_groupBox.Background);
+        Assert.True(_groupBox.ShowBackground);
     }
 
     [Fact]
@@ -38,9 +38,9 @@ public class FGroupBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_RoundingIntIs60()
+    public void Constructor_DefaultStyle_CornerRadiusIs60()
     {
-        Assert.Equal(60, _groupBox.RoundingInt);
+        Assert.Equal(60, _groupBox.CornerRadius);
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public class FGroupBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundPenIsTrue()
+    public void Constructor_DefaultStyle_ShowBorderIsTrue()
     {
-        Assert.True(_groupBox.BackgroundPen);
+        Assert.True(_groupBox.ShowBorder);
     }
 
     [Fact]
@@ -65,30 +65,30 @@ public class FGroupBoxTests : IDisposable
     [InlineData(0)]
     [InlineData(50)]
     [InlineData(100)]
-    public void RoundingInt_ValidValues_AreAccepted(int value)
+    public void CornerRadius_ValidValues_AreAccepted(int value)
     {
-        _groupBox.RoundingInt = value;
+        _groupBox.CornerRadius = value;
 
-        Assert.Equal(value, _groupBox.RoundingInt);
+        Assert.Equal(value, _groupBox.CornerRadius);
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]
-    public void RoundingInt_InvalidValues_AreRejected(int value)
+    public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _groupBox.RoundingInt;
-        _groupBox.RoundingInt = value;
+        int original = _groupBox.CornerRadius;
+        _groupBox.CornerRadius = value;
 
-        Assert.Equal(original, _groupBox.RoundingInt);
+        Assert.Equal(original, _groupBox.CornerRadius);
     }
 
     [Fact]
-    public void ColorBackground_SetValue_ReturnsSetValue()
+    public void BackgroundColor_SetValue_ReturnsSetValue()
     {
-        _groupBox.ColorBackground = Color.DarkGreen;
+        _groupBox.BackgroundColor = Color.DarkGreen;
 
-        Assert.Equal(Color.DarkGreen, _groupBox.ColorBackground);
+        Assert.Equal(Color.DarkGreen, _groupBox.BackgroundColor);
     }
 
     [Fact]

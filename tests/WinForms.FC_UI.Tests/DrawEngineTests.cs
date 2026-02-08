@@ -7,12 +7,12 @@ namespace WinForms.FC_UI.Tests;
 [Collection("GlobalRGBTimer")]
 public class DrawEngineTests
 {
-    #region HSV_To_RGB Tests
+    #region HsvToRgb Tests
 
     [Fact]
-    public void HSV_To_RGB_PureRed_ReturnsRed()
+    public void HsvToRgb_PureRed_ReturnsRed()
     {
-        Color result = DrawEngine.HSV_To_RGB(0, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(0, 1f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(0, result.G);
@@ -20,9 +20,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_PureGreen_ReturnsGreen()
+    public void HsvToRgb_PureGreen_ReturnsGreen()
     {
-        Color result = DrawEngine.HSV_To_RGB(120, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(120, 1f, 1f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(255, result.G);
@@ -30,9 +30,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_PureBlue_ReturnsBlue()
+    public void HsvToRgb_PureBlue_ReturnsBlue()
     {
-        Color result = DrawEngine.HSV_To_RGB(240, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(240, 1f, 1f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(0, result.G);
@@ -40,9 +40,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_Yellow_ReturnsYellow()
+    public void HsvToRgb_Yellow_ReturnsYellow()
     {
-        Color result = DrawEngine.HSV_To_RGB(60, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(60, 1f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(255, result.G);
@@ -50,9 +50,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_Cyan_ReturnsCyan()
+    public void HsvToRgb_Cyan_ReturnsCyan()
     {
-        Color result = DrawEngine.HSV_To_RGB(180, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(180, 1f, 1f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(255, result.G);
@@ -60,9 +60,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_Magenta_ReturnsMagenta()
+    public void HsvToRgb_Magenta_ReturnsMagenta()
     {
-        Color result = DrawEngine.HSV_To_RGB(300, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(300, 1f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(0, result.G);
@@ -70,9 +70,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_ZeroSaturation_ReturnsGray()
+    public void HsvToRgb_ZeroSaturation_ReturnsGray()
     {
-        Color result = DrawEngine.HSV_To_RGB(0, 0f, 0.5f);
+        Color result = DrawEngine.HsvToRgb(0, 0f, 0.5f);
 
         Assert.Equal(127, result.R);
         Assert.Equal(127, result.G);
@@ -80,9 +80,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_FullBrightnessZeroSaturation_ReturnsWhite()
+    public void HsvToRgb_FullBrightnessZeroSaturation_ReturnsWhite()
     {
-        Color result = DrawEngine.HSV_To_RGB(0, 0f, 1f);
+        Color result = DrawEngine.HsvToRgb(0, 0f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(255, result.G);
@@ -90,9 +90,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_ZeroBrightnessZeroSaturation_ReturnsBlack()
+    public void HsvToRgb_ZeroBrightnessZeroSaturation_ReturnsBlack()
     {
-        Color result = DrawEngine.HSV_To_RGB(0, 0f, 0f);
+        Color result = DrawEngine.HsvToRgb(0, 0f, 0f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(0, result.G);
@@ -100,9 +100,9 @@ public class DrawEngineTests
     }
 
     [Fact]
-    public void HSV_To_RGB_AlphaIsAlways255()
+    public void HsvToRgb_AlphaIsAlways255()
     {
-        Color result = DrawEngine.HSV_To_RGB(180, 0.5f, 0.8f);
+        Color result = DrawEngine.HsvToRgb(180, 0.5f, 0.8f);
 
         Assert.Equal(255, result.A);
     }
@@ -114,9 +114,9 @@ public class DrawEngineTests
     [InlineData(180)]
     [InlineData(240)]
     [InlineData(300)]
-    public void HSV_To_RGB_BoundaryHueValues_DoNotThrow(float hue)
+    public void HsvToRgb_BoundaryHueValues_DoNotThrow(float hue)
     {
-        Color result = DrawEngine.HSV_To_RGB(hue, 1f, 1f);
+        Color result = DrawEngine.HsvToRgb(hue, 1f, 1f);
 
         Assert.True(result.R >= 0 && result.R <= 255);
         Assert.True(result.G >= 0 && result.G <= 255);
@@ -125,60 +125,59 @@ public class DrawEngineTests
 
     #endregion
 
-    #region RoundedRectangle Tests
+    #region CreateRoundedPath Tests
 
     [Fact]
-    public void RoundedRectangle_ValidInput_ReturnsNonEmptyPath()
+    public void CreateRoundedPath_ValidInput_ReturnsNonEmptyPath()
     {
         Rectangle rect = new(10, 10, 100, 50);
 
-        using GraphicsPath path = DrawEngine.RoundedRectangle(rect, 10f);
+        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 10f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
     }
 
     [Fact]
-    public void RoundedRectangle_ZeroAngle_ReturnsValidPath()
+    public void CreateRoundedPath_ZeroAngle_ReturnsValidPath()
     {
         Rectangle rect = new(0, 0, 100, 50);
 
-        using GraphicsPath path = DrawEngine.RoundedRectangle(rect, 0.1f);
+        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 0.1f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
     }
 
     [Fact]
-    public void RoundedRectangle_FigureIsClosed()
+    public void CreateRoundedPath_FigureIsClosed()
     {
         Rectangle rect = new(0, 0, 100, 100);
 
-        using GraphicsPath path = DrawEngine.RoundedRectangle(rect, 20f);
+        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 20f);
 
-        // A closed figure has its start and end points connected
         RectangleF bounds = path.GetBounds();
         Assert.True(bounds.Width > 0);
         Assert.True(bounds.Height > 0);
     }
 
     [Fact]
-    public void RoundedRectangle_SmallRectangle_ReturnsValidPath()
+    public void CreateRoundedPath_SmallRectangle_ReturnsValidPath()
     {
         Rectangle rect = new(0, 0, 10, 10);
 
-        using GraphicsPath path = DrawEngine.RoundedRectangle(rect, 5f);
+        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 5f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
     }
 
     [Fact]
-    public void RoundedRectangle_LargeAngle_ReturnsValidPath()
+    public void CreateRoundedPath_LargeAngle_ReturnsValidPath()
     {
         Rectangle rect = new(0, 0, 200, 200);
 
-        using GraphicsPath path = DrawEngine.RoundedRectangle(rect, 100f);
+        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 100f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
@@ -186,32 +185,32 @@ public class DrawEngineTests
 
     #endregion
 
-    #region TimerGlobalRGB Tests
+    #region SetGlobalRgbTimer Tests
 
     [Fact]
-    public void TimerGlobalRGB_Enable_StartsTimer()
+    public void SetGlobalRgbTimer_Enable_StartsTimer()
     {
-        DrawEngine.TimerGlobalRGB(true);
+        DrawEngine.SetGlobalRgbTimer(true);
 
-        Assert.True(DrawEngine.timer_global_rgb.Enabled);
+        Assert.True(DrawEngine.GlobalRgbTimer.Enabled);
 
         // Cleanup
-        DrawEngine.TimerGlobalRGB(false);
+        DrawEngine.SetGlobalRgbTimer(false);
     }
 
     [Fact]
-    public void TimerGlobalRGB_Disable_StopsTimer()
+    public void SetGlobalRgbTimer_Disable_StopsTimer()
     {
-        DrawEngine.TimerGlobalRGB(true);
-        DrawEngine.TimerGlobalRGB(false);
+        DrawEngine.SetGlobalRgbTimer(true);
+        DrawEngine.SetGlobalRgbTimer(false);
 
-        Assert.False(DrawEngine.timer_global_rgb.Enabled);
+        Assert.False(DrawEngine.GlobalRgbTimer.Enabled);
     }
 
     [Fact]
-    public void TimerGlobalRGB_DefaultInterval_Is50()
+    public void GlobalRgbTimer_DefaultInterval_Is50()
     {
-        Assert.Equal(50, DrawEngine.timer_global_rgb.Interval);
+        Assert.Equal(50, DrawEngine.GlobalRgbTimer.Interval);
     }
 
     #endregion

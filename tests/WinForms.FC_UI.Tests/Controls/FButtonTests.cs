@@ -29,15 +29,15 @@ public class FButtonTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_SetsTextButton()
+    public void Constructor_DefaultStyle_SetsDisplayText()
     {
-        Assert.Equal("FButton", _button.TextButton);
+        Assert.Equal("FButton", _button.DisplayText);
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundIsTrue()
+    public void Constructor_DefaultStyle_ShowBackgroundIsTrue()
     {
-        Assert.True(_button.Background);
+        Assert.True(_button.ShowBackground);
     }
 
     [Fact]
@@ -47,9 +47,9 @@ public class FButtonTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_RoundingIntIs70()
+    public void Constructor_DefaultStyle_CornerRadiusIs70()
     {
-        Assert.Equal(70, _button.RoundingInt);
+        Assert.Equal(70, _button.CornerRadius);
     }
 
     [Fact]
@@ -59,21 +59,21 @@ public class FButtonTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_Effect1IsTrue()
+    public void Constructor_DefaultStyle_EnableClickEffectIsTrue()
     {
-        Assert.True(_button.Effect_1);
+        Assert.True(_button.EnableClickEffect);
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_Effect2IsTrue()
+    public void Constructor_DefaultStyle_EnableHoverEffectIsTrue()
     {
-        Assert.True(_button.Effect_2);
+        Assert.True(_button.EnableHoverEffect);
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundPenIsTrue()
+    public void Constructor_DefaultStyle_ShowBorderIsTrue()
     {
-        Assert.True(_button.BackgroundPen);
+        Assert.True(_button.ShowBorder);
     }
 
     [Fact]
@@ -96,69 +96,69 @@ public class FButtonTests : IDisposable
     [InlineData(0)]
     [InlineData(50)]
     [InlineData(100)]
-    public void RoundingInt_ValidValues_AreAccepted(int value)
+    public void CornerRadius_ValidValues_AreAccepted(int value)
     {
-        _button.RoundingInt = value;
+        _button.CornerRadius = value;
 
-        Assert.Equal(value, _button.RoundingInt);
+        Assert.Equal(value, _button.CornerRadius);
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]
     [InlineData(200)]
-    public void RoundingInt_InvalidValues_AreRejected(int value)
+    public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _button.RoundingInt;
+        int original = _button.CornerRadius;
 
-        _button.RoundingInt = value;
+        _button.CornerRadius = value;
 
-        Assert.Equal(original, _button.RoundingInt);
+        Assert.Equal(original, _button.CornerRadius);
     }
 
     [Theory]
     [InlineData(1)]
     [InlineData(128)]
     [InlineData(255)]
-    public void Effect1Transparency_ValidValues_AreAccepted(int value)
+    public void ClickEffectOpacity_ValidValues_AreAccepted(int value)
     {
-        _button.Effect_1_Transparency = value;
+        _button.ClickEffectOpacity = value;
 
-        Assert.Equal(value, _button.Effect_1_Transparency);
+        Assert.Equal(value, _button.ClickEffectOpacity);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(256)]
     [InlineData(-1)]
-    public void Effect1Transparency_InvalidValues_AreRejected(int value)
+    public void ClickEffectOpacity_InvalidValues_AreRejected(int value)
     {
-        _button.Effect_1_Transparency = 100;
-        _button.Effect_1_Transparency = value;
+        _button.ClickEffectOpacity = 100;
+        _button.ClickEffectOpacity = value;
 
-        Assert.Equal(100, _button.Effect_1_Transparency);
+        Assert.Equal(100, _button.ClickEffectOpacity);
     }
 
     [Theory]
     [InlineData(1)]
     [InlineData(128)]
     [InlineData(255)]
-    public void Effect2Transparency_ValidValues_AreAccepted(int value)
+    public void HoverEffectOpacity_ValidValues_AreAccepted(int value)
     {
-        _button.Effect_2_Transparency = value;
+        _button.HoverEffectOpacity = value;
 
-        Assert.Equal(value, _button.Effect_2_Transparency);
+        Assert.Equal(value, _button.HoverEffectOpacity);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(256)]
-    public void Effect2Transparency_InvalidValues_AreRejected(int value)
+    public void HoverEffectOpacity_InvalidValues_AreRejected(int value)
     {
-        _button.Effect_2_Transparency = 100;
-        _button.Effect_2_Transparency = value;
+        _button.HoverEffectOpacity = 100;
+        _button.HoverEffectOpacity = value;
 
-        Assert.Equal(100, _button.Effect_2_Transparency);
+        Assert.Equal(100, _button.HoverEffectOpacity);
     }
 
     #endregion
@@ -166,31 +166,31 @@ public class FButtonTests : IDisposable
     #region Property Setter Tests
 
     [Fact]
-    public void ColorBackground_SetValue_ReturnsSetValue()
+    public void BackgroundColor_SetValue_ReturnsSetValue()
     {
         Color expected = Color.Red;
 
-        _button.ColorBackground = expected;
+        _button.BackgroundColor = expected;
 
-        Assert.Equal(expected, _button.ColorBackground);
+        Assert.Equal(expected, _button.BackgroundColor);
     }
 
     [Fact]
-    public void ColorBackgroundPen_SetValue_ReturnsSetValue()
+    public void BorderColor_SetValue_ReturnsSetValue()
     {
         Color expected = Color.Blue;
 
-        _button.ColorBackground_Pen = expected;
+        _button.BorderColor = expected;
 
-        Assert.Equal(expected, _button.ColorBackground_Pen);
+        Assert.Equal(expected, _button.BorderColor);
     }
 
     [Fact]
-    public void BackgroundWidthPen_SetValue_ReturnsSetValue()
+    public void BorderWidth_SetValue_ReturnsSetValue()
     {
-        _button.Background_WidthPen = 5.5F;
+        _button.BorderWidth = 5.5F;
 
-        Assert.Equal(5.5F, _button.Background_WidthPen);
+        Assert.Equal(5.5F, _button.BorderWidth);
     }
 
     [Fact]

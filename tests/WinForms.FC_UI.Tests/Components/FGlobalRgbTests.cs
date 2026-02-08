@@ -5,15 +5,15 @@ using FC_UI.Components;
 namespace WinForms.FC_UI.Tests.Components;
 
 [Collection("GlobalRGBTimer")]
-public class FGlobal_RGBTests : IDisposable
+public class FGlobalRgbTests : IDisposable
 {
     private readonly Container _container;
-    private readonly FGlobal_RGB _globalRgb;
+    private readonly FGlobalRgb _globalRgb;
 
-    public FGlobal_RGBTests()
+    public FGlobalRgbTests()
     {
         _container = new Container();
-        _globalRgb = new FGlobal_RGB(_container);
+        _globalRgb = new FGlobalRgb(_container);
     }
 
     public void Dispose()
@@ -33,7 +33,7 @@ public class FGlobal_RGBTests : IDisposable
     {
         _globalRgb.Status = true;
 
-        Assert.True(DrawEngine.timer_global_rgb.Enabled);
+        Assert.True(DrawEngine.GlobalRgbTimer.Enabled);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class FGlobal_RGBTests : IDisposable
         _globalRgb.Status = true;
         _globalRgb.Status = false;
 
-        Assert.False(DrawEngine.timer_global_rgb.Enabled);
+        Assert.False(DrawEngine.GlobalRgbTimer.Enabled);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class FGlobal_RGBTests : IDisposable
     {
         _globalRgb.TimerInterval = 500;
 
-        Assert.Equal(500, DrawEngine.timer_global_rgb.Interval);
+        Assert.Equal(500, DrawEngine.GlobalRgbTimer.Interval);
 
         // Reset to default
         _globalRgb.TimerInterval = 50;

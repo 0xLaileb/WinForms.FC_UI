@@ -25,15 +25,15 @@ public class FCheckBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_SetsTextButton()
+    public void Constructor_DefaultStyle_SetsDisplayText()
     {
-        Assert.Equal("FCheckBox", _checkBox.TextButton);
+        Assert.Equal("FCheckBox", _checkBox.DisplayText);
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_BackgroundIsTrue()
+    public void Constructor_DefaultStyle_ShowBackgroundIsTrue()
     {
-        Assert.True(_checkBox.Background);
+        Assert.True(_checkBox.ShowBackground);
     }
 
     [Fact]
@@ -43,9 +43,9 @@ public class FCheckBoxTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_DefaultStyle_RoundingIntIs100()
+    public void Constructor_DefaultStyle_CornerRadiusIs100()
     {
-        Assert.Equal(100, _checkBox.RoundingInt);
+        Assert.Equal(100, _checkBox.CornerRadius);
     }
 
     [Fact]
@@ -80,22 +80,22 @@ public class FCheckBoxTests : IDisposable
     [InlineData(0)]
     [InlineData(50)]
     [InlineData(100)]
-    public void RoundingInt_ValidValues_AreAccepted(int value)
+    public void CornerRadius_ValidValues_AreAccepted(int value)
     {
-        _checkBox.RoundingInt = value;
+        _checkBox.CornerRadius = value;
 
-        Assert.Equal(value, _checkBox.RoundingInt);
+        Assert.Equal(value, _checkBox.CornerRadius);
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]
-    public void RoundingInt_InvalidValues_AreRejected(int value)
+    public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _checkBox.RoundingInt;
-        _checkBox.RoundingInt = value;
+        int original = _checkBox.CornerRadius;
+        _checkBox.CornerRadius = value;
 
-        Assert.Equal(original, _checkBox.RoundingInt);
+        Assert.Equal(original, _checkBox.CornerRadius);
     }
 
     [Fact]
