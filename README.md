@@ -269,7 +269,7 @@ Things to add or fix in future releases:
 
 This project is licensed under the [MIT License](LICENSE).
 
-## Star History
+## 📖 Star History
 
 <a href="https://www.star-history.com/#0xLaileb/WinForms.FC_UI&Date">
  <picture>
