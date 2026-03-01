@@ -268,3 +268,13 @@ Things to add or fix in future releases:
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Star History
+
+<a href="https://www.star-history.com/#0xLaileb/WinForms.FC_UI&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=0xLaileb/WinForms.FC_UI&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=0xLaileb/WinForms.FC_UI&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=0xLaileb/WinForms.FC_UI&type=Date" />
+ </picture>
+</a>
