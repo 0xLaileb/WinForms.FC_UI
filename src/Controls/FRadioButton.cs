@@ -243,6 +243,16 @@ public partial class FRadioButton : FControlBase
         OnSizeChanged(EventArgs.Empty);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _clickAnimationTimer.Stop();
+            _clickAnimationTimer.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
     protected override CreateParams CreateParams
     {
         get
@@ -265,7 +275,7 @@ public partial class FRadioButton : FControlBase
             DrawBackground(e.Graphics);
             DrawText(e.Graphics);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnMouseClick(MouseEventArgs e)

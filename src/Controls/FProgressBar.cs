@@ -245,6 +245,12 @@ public partial class FProgressBar : FControlBase
         OnSizeChanged(EventArgs.Empty);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _textFormat.Dispose();
+        base.Dispose(disposing);
+    }
+
     #endregion
 
     #region Events
@@ -257,7 +263,7 @@ public partial class FProgressBar : FControlBase
             DrawBackground(e.Graphics);
             if (ProgressText) DrawText(e.Graphics);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnSizeChanged(EventArgs e)
@@ -311,7 +317,7 @@ public partial class FProgressBar : FControlBase
     private void DrawText(Graphics graphics)
     {
         using SolidBrush brush = new(ForeColor);
-        int percent = Maximum != 0 ? Value / (Maximum / 100) : 0;
+        int percent = Maximum != 0 ? (int)Math.Round((double)Value / Maximum * 100) : 0;
         graphics.DrawString(
             $"{percent}%", Font, brush, _regionRect, _textFormat);
     }
@@ -320,7 +326,8 @@ public partial class FProgressBar : FControlBase
     {
         if (Value == 0) return;
 
-        _drawnValueWidth = Convert.ToInt32(_shapePath.GetBounds().Width / 100 * (Value / (Maximum / 100)));
+        double ratio = Maximum != 0 ? (double)Value / Maximum : 0;
+        _drawnValueWidth = Convert.ToInt32(_shapePath.GetBounds().Width * ratio);
         _valueRect = new(_regionRect.X, _regionRect.Y, _drawnValueWidth, _regionRect.Height);
 
         const int offset = 1;

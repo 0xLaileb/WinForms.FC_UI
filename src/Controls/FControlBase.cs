@@ -29,6 +29,7 @@ public abstract class FControlBase : UserControl
     protected GraphicsPath _shapePath = new();
     protected Size _controlSize = new();
     private EventHandler? _rgbTickHandler;
+    private EventHandler? _globalRgbTickHandler;
 
     #endregion
 
@@ -64,10 +65,22 @@ public abstract class FControlBase : UserControl
                 _rgbTimer.Tick -= _rgbTickHandler;
                 _rgbTickHandler = null;
             }
+            if (_globalRgbTickHandler is not null)
+            {
+                DrawEngine.GlobalRgbTimer.Tick -= _globalRgbTickHandler;
+                _globalRgbTickHandler = null;
+            }
 
             if (_isRgbEnabled)
             {
-                if (!DrawEngine.GlobalRgbTimer.Enabled)
+                if (DrawEngine.GlobalRgbTimer.Enabled)
+                {
+                    // HsvToRgb already uses s_globalHue when GlobalRgbTimer is active;
+                    // subscribe for repaints only.
+                    _globalRgbTickHandler = (sender, args) => Refresh();
+                    DrawEngine.GlobalRgbTimer.Tick += _globalRgbTickHandler;
+                }
+                else
                 {
                     _rgbTickHandler = (sender, args) =>
                     {
@@ -315,6 +328,27 @@ public abstract class FControlBase : UserControl
             true);
         DoubleBuffered = true;
         Tag = "FC_UI";
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _rgbTimer.Stop();
+            if (_rgbTickHandler is not null)
+            {
+                _rgbTimer.Tick -= _rgbTickHandler;
+                _rgbTickHandler = null;
+            }
+            if (_globalRgbTickHandler is not null)
+            {
+                DrawEngine.GlobalRgbTimer.Tick -= _globalRgbTickHandler;
+                _globalRgbTickHandler = null;
+            }
+            _rgbTimer.Dispose();
+            _shapePath.Dispose();
+        }
+        base.Dispose(disposing);
     }
 
     #endregion

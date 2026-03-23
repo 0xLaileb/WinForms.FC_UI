@@ -278,7 +278,7 @@ public partial class FScrollBar : FControlBase
             ApplyGraphicsSettings(e.Graphics);
             DrawBackground(e.Graphics);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     public virtual void OnScroll(ScrollEventType type = ScrollEventType.ThumbPosition)
@@ -310,22 +310,20 @@ public partial class FScrollBar : FControlBase
             case System.Windows.Forms.Orientation.Vertical:
                 if (e.Y < 0) newValue -= SmallStep;
                 else if (e.Y > _regionRect.Height) newValue += SmallStep;
-                else newValue = Maximum * (e.Y - ThumbSize / 2) / (_regionRect.Height - ThumbSize);
-                _thumbRect = new(
-                    _regionRect.X,
-                    _regionRect.Y + Value * (_regionRect.Height - ThumbSize) / Maximum,
-                    _regionRect.Width,
-                    ThumbSize);
+                else
+                {
+                    int range = _regionRect.Height - ThumbSize;
+                    if (range > 0) newValue = Maximum * (e.Y - ThumbSize / 2) / range;
+                }
                 break;
             case System.Windows.Forms.Orientation.Horizontal:
                 if (e.X < 0) newValue -= SmallStep;
                 else if (e.X > _regionRect.Width) newValue += SmallStep;
-                else newValue = Maximum * (e.X - ThumbSize / 2) / (_regionRect.Width - ThumbSize);
-                _thumbRect = new(
-                    _regionRect.X + Value * (_regionRect.Width - ThumbSize) / Maximum,
-                    _regionRect.Y,
-                    ThumbSize,
-                    _regionRect.Height);
+                else
+                {
+                    int range = _regionRect.Width - ThumbSize;
+                    if (range > 0) newValue = Maximum * (e.X - ThumbSize / 2) / range;
+                }
                 break;
         }
         Value = Math.Max(0, Math.Min(Maximum, newValue));
@@ -382,19 +380,25 @@ public partial class FScrollBar : FControlBase
         switch (Orientation)
         {
             case System.Windows.Forms.Orientation.Vertical:
+            {
+                int vRange = _regionRect.Height - ThumbSize;
                 _thumbRect = new(
                     _regionRect.X,
-                    _regionRect.Y + Value * (_regionRect.Height - ThumbSize) / Maximum,
+                    _regionRect.Y + (vRange > 0 ? Value * vRange / Maximum : 0),
                     _regionRect.Width,
                     ThumbSize);
                 break;
+            }
             case System.Windows.Forms.Orientation.Horizontal:
+            {
+                int hRange = _regionRect.Width - ThumbSize;
                 _thumbRect = new(
-                    _regionRect.X + Value * (_regionRect.Width - ThumbSize) / Maximum,
+                    _regionRect.X + (hRange > 0 ? Value * hRange / Maximum : 0),
                     _regionRect.Y,
                     ThumbSize,
                     _regionRect.Height);
                 break;
+            }
         }
 
         const int offset = 1;

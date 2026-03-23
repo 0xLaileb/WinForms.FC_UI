@@ -103,6 +103,12 @@ public partial class FGroupBox : FControlBase
         OnSizeChanged(EventArgs.Empty);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _textFormat.Dispose();
+        base.Dispose(disposing);
+    }
+
     #endregion
 
     #region Events
@@ -114,7 +120,7 @@ public partial class FGroupBox : FControlBase
             ApplyGraphicsSettings(e.Graphics);
             DrawBackground(e.Graphics);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnSizeChanged(EventArgs e)

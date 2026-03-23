@@ -180,6 +180,17 @@ public partial class FButton : FControlBase
         OnSizeChanged(EventArgs.Empty);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _textFormat.Dispose();
+            _clickAnimationTimer.Stop();
+            _clickAnimationTimer.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
     #endregion
 
     #region Events
@@ -194,7 +205,7 @@ public partial class FButton : FControlBase
 
             _shapePath.ClearMarkers();
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnMouseEnter(EventArgs e)
@@ -252,37 +263,36 @@ public partial class FButton : FControlBase
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
         // Content layer with effects
-        Bitmap contentBitmap = new(Width, Height);
-        using Graphics graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint);
-
-        int offset = 1;
-        using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-            _regionRect.X - offset,
-            _regionRect.Y - offset,
-            _regionRect.Width + offset * 2,
-            _regionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
-        using Region clipRegion = new(clipPath);
-        graphics.Clip = clipRegion;
-
-        if (ShowBackground)
+        using Bitmap contentBitmap = new(Width, Height);
+        using (Graphics graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            if (UseGradientBackground)
+            int offset = 1;
+            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
+                _regionRect.X - offset,
+                _regionRect.Y - offset,
+                _regionRect.Width + offset * 2,
+                _regionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
+            using Region clipRegion = new(clipPath);
+            graphics.Clip = clipRegion;
+
+            if (ShowBackground)
             {
-                using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                graphics.FillPath(brush, _shapePath);
+                if (UseGradientBackground)
+                {
+                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
+                    graphics.FillPath(brush, _shapePath);
+                }
+                else
+                {
+                    using SolidBrush brush = new(BackgroundColor);
+                    graphics.FillPath(brush, _shapePath);
+                }
             }
-            else
-            {
-                using SolidBrush brush = new(BackgroundColor);
-                graphics.FillPath(brush, _shapePath);
-            }
+
+            if (EnableClickEffect) DrawClickAnimation(graphics);
+            if (EnableHoverEffect && _isMouseHovered) DrawHoverOverlay(graphics);
         }
-
-        if (EnableClickEffect) DrawClickAnimation(graphics);
-        if (EnableHoverEffect && _isMouseHovered) DrawHoverOverlay(graphics);
-
-        using (contentBitmap)
-            formGraphics.DrawImage(contentBitmap, PointF.Empty);
+        formGraphics.DrawImage(contentBitmap, PointF.Empty);
     }
 
     private void DrawText(Graphics graphics)

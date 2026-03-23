@@ -175,7 +175,7 @@ public partial class FSwitchBox : FControlBase
             ApplyGraphicsSettings(e.Graphics);
             DrawBackground(e.Graphics);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnMouseClick(MouseEventArgs e)

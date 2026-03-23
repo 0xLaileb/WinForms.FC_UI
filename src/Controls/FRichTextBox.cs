@@ -118,6 +118,12 @@ public partial class FRichTextBox : FControlBase
         OnSizeChanged(EventArgs.Empty);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _textFormat.Dispose();
+        base.Dispose(disposing);
+    }
+
     public void UpdateRichTextBox(bool visible)
     {
         _innerRichTextBox.Visible = visible;
@@ -146,7 +152,7 @@ public partial class FRichTextBox : FControlBase
             DrawBackground(e.Graphics);
             UpdateRichTextBox(true);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnSizeChanged(EventArgs e)

@@ -11,7 +11,11 @@ public partial class FTextBox : FControlBase
     #region Fields
 
     private readonly StringFormat _textFormat = new();
-    public TextBox InnerTextBox = new();
+    private readonly TextBox _innerTextBox = new();
+    private Font? _cachedFont;
+    private int _lastFontHeight = -1;
+
+    public TextBox InnerTextBox => _innerTextBox;
 
     #endregion
 
@@ -148,6 +152,16 @@ public partial class FTextBox : FControlBase
         OnSizeChanged(EventArgs.Empty);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _textFormat.Dispose();
+            _cachedFont?.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
     public void UpdateTextBox(bool visible)
     {
         InnerTextBox.Visible = visible;
@@ -156,7 +170,14 @@ public partial class FTextBox : FControlBase
         if (BackgroundColor.Name != "Transparent") InnerTextBox.BackColor = BackgroundColor;
         InnerTextBox.ForeColor = Color.WhiteSmoke;
         InnerTextBox.BorderStyle = BorderStyle.None;
-        Font = new Font(Font.Name, Height / 4, Font.Style);
+        if (Height != _lastFontHeight)
+        {
+            float fontSize = Math.Max(1f, Height / 4f);
+            _cachedFont?.Dispose();
+            _cachedFont = new Font(Font.Name, fontSize, Font.Style);
+            Font = _cachedFont;
+            _lastFontHeight = Height;
+        }
         InnerTextBox.Font = Font;
         InnerTextBox.TextAlign = HorizontalAlignment.Center;
         InnerTextBox.MaxLength = 10000;
@@ -175,7 +196,7 @@ public partial class FTextBox : FControlBase
             DrawBackground(e.Graphics);
             UpdateTextBox(true);
         }
-        catch (Exception ex) { HelpEngine.ShowError($"[{Name}] Error: \n{ex}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
 
     protected override void OnSizeChanged(EventArgs e)
