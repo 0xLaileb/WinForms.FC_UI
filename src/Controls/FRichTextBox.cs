@@ -50,11 +50,11 @@ public partial class FRichTextBox : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(150, 130);
+                    Size = new Size(150, 130);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     DisplayText = "FRichTextBox";
-                    RGB = false;
+                    Rgb = false;
                     Rounding = true;
                     CornerRadius = 60;
                     ShowBorder = true;
@@ -111,7 +111,7 @@ public partial class FRichTextBox : FControlBase
         _textFormat.Alignment = StringAlignment.Center;
         _textFormat.LineAlignment = StringAlignment.Center;
 
-        _innerRichTextBox.Text = "Text";
+        _innerRichTextBox.Text = @"Text";
         UpdateRichTextBox(false);
         Controls.Add(_innerRichTextBox);
 
@@ -127,10 +127,10 @@ public partial class FRichTextBox : FControlBase
     public void UpdateRichTextBox(bool visible)
     {
         _innerRichTextBox.Visible = visible;
-        _innerRichTextBox.Size = new(
-            (int)(_controlSize.Width - CornerRadius / 2 - BorderWidth / 2),
-            (int)(_controlSize.Height - CornerRadius / 2 - BorderWidth / 2));
-        _innerRichTextBox.Location = new(Width / 2 - _innerRichTextBox.Size.Width / 2, Height / 2 - _innerRichTextBox.Size.Height / 2);
+        _innerRichTextBox.Size = new Size(
+            (int)(ControlSize.Width - CornerRadius / 2 - BorderWidth / 2),
+            (int)(ControlSize.Height - CornerRadius / 2 - BorderWidth / 2));
+        _innerRichTextBox.Location = new Point(Width / 2 - _innerRichTextBox.Size.Width / 2, Height / 2 - _innerRichTextBox.Size.Height / 2);
         if (BackgroundColor.Name != "Transparent")
             _innerRichTextBox.BackColor = BackgroundColor;
         _innerRichTextBox.ForeColor = Color.WhiteSmoke;
@@ -166,19 +166,19 @@ public partial class FRichTextBox : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = CalculateRoundingValue(Height);
-        using var shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
-        using var regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        var roundingValue = CalculateRoundingValue(Height);
+        using var shapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
+        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
         Region?.Dispose();
         Region = new Region(regionPath);
 
         // Border layer
         Bitmap borderBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
         {
             if (Lighting)
             {
-                using var shadowPath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+                using var shadowPath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
                 DrawEngine.DrawBlurredShadow(g, LightingColor, shadowPath, LightingAlpha, LightingWidth);
             }
 
@@ -186,13 +186,20 @@ public partial class FRichTextBox : FControlBase
             {
                 if (UseGradientBorder)
                 {
-                    using var brush = new LinearGradientBrush(_regionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    using var pen = new Pen(brush, BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
+                    using var brush = new LinearGradientBrush(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
+                    
+                    using var pen = new Pen(brush, BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
                     g.DrawPath(pen, shapePath);
                 }
                 else
                 {
-                    using var pen = new Pen(GetRgbOrColor(BorderColor), BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
+                    using var pen = new Pen(GetRgbOrColor(BorderColor), BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
                     g.DrawPath(pen, shapePath);
                 }
             }
@@ -201,13 +208,13 @@ public partial class FRichTextBox : FControlBase
 
         // Content layer
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            using var clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - (int)(2 + BorderWidth),
-                _regionRect.Y - (int)(2 + BorderWidth),
-                _regionRect.Width + (int)(2 + BorderWidth) * 2,
-                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - (int)(2 + BorderWidth),
+                RegionRect.Y - (int)(2 + BorderWidth),
+                RegionRect.Width + (int)(2 + BorderWidth) * 2,
+                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
             using var clipRegion = new Region(clipPath);
             g.Clip = clipRegion;
 

@@ -1,5 +1,3 @@
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using FC_UI;
 
 namespace WinForms.FC_UI.Tests;
@@ -12,7 +10,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_PureRed_ReturnsRed()
     {
-        Color result = DrawEngine.HsvToRgb(0, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(0, 1f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(0, result.G);
@@ -22,7 +20,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_PureGreen_ReturnsGreen()
     {
-        Color result = DrawEngine.HsvToRgb(120, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(120, 1f, 1f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(255, result.G);
@@ -32,7 +30,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_PureBlue_ReturnsBlue()
     {
-        Color result = DrawEngine.HsvToRgb(240, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(240, 1f, 1f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(0, result.G);
@@ -42,7 +40,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_Yellow_ReturnsYellow()
     {
-        Color result = DrawEngine.HsvToRgb(60, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(60, 1f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(255, result.G);
@@ -52,7 +50,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_Cyan_ReturnsCyan()
     {
-        Color result = DrawEngine.HsvToRgb(180, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(180, 1f, 1f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(255, result.G);
@@ -62,7 +60,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_Magenta_ReturnsMagenta()
     {
-        Color result = DrawEngine.HsvToRgb(300, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(300, 1f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(0, result.G);
@@ -72,7 +70,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_ZeroSaturation_ReturnsGray()
     {
-        Color result = DrawEngine.HsvToRgb(0, 0f, 0.5f);
+        var result = DrawEngine.HsvToRgb(0, 0f, 0.5f);
 
         Assert.Equal(127, result.R);
         Assert.Equal(127, result.G);
@@ -82,7 +80,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_FullBrightnessZeroSaturation_ReturnsWhite()
     {
-        Color result = DrawEngine.HsvToRgb(0, 0f, 1f);
+        var result = DrawEngine.HsvToRgb(0, 0f, 1f);
 
         Assert.Equal(255, result.R);
         Assert.Equal(255, result.G);
@@ -92,7 +90,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_ZeroBrightnessZeroSaturation_ReturnsBlack()
     {
-        Color result = DrawEngine.HsvToRgb(0, 0f, 0f);
+        var result = DrawEngine.HsvToRgb(0, 0f, 0f);
 
         Assert.Equal(0, result.R);
         Assert.Equal(0, result.G);
@@ -102,7 +100,7 @@ public class DrawEngineTests
     [Fact]
     public void HsvToRgb_AlphaIsAlways255()
     {
-        Color result = DrawEngine.HsvToRgb(180, 0.5f, 0.8f);
+        var result = DrawEngine.HsvToRgb(180, 0.5f, 0.8f);
 
         Assert.Equal(255, result.A);
     }
@@ -116,7 +114,7 @@ public class DrawEngineTests
     [InlineData(300)]
     public void HsvToRgb_BoundaryHueValues_DoNotThrow(float hue)
     {
-        Color result = DrawEngine.HsvToRgb(hue, 1f, 1f);
+        var result = DrawEngine.HsvToRgb(hue, 1f, 1f);
 
         Assert.True(result.R >= 0 && result.R <= 255);
         Assert.True(result.G >= 0 && result.G <= 255);
@@ -132,7 +130,7 @@ public class DrawEngineTests
     {
         Rectangle rect = new(10, 10, 100, 50);
 
-        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 10f);
+        using var path = DrawEngine.CreateRoundedPath(rect, 10f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
@@ -143,7 +141,7 @@ public class DrawEngineTests
     {
         Rectangle rect = new(0, 0, 100, 50);
 
-        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 0.1f);
+        using var path = DrawEngine.CreateRoundedPath(rect, 0.1f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
@@ -154,9 +152,9 @@ public class DrawEngineTests
     {
         Rectangle rect = new(0, 0, 100, 100);
 
-        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 20f);
+        using var path = DrawEngine.CreateRoundedPath(rect, 20f);
 
-        RectangleF bounds = path.GetBounds();
+        var bounds = path.GetBounds();
         Assert.True(bounds.Width > 0);
         Assert.True(bounds.Height > 0);
     }
@@ -166,7 +164,7 @@ public class DrawEngineTests
     {
         Rectangle rect = new(0, 0, 10, 10);
 
-        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 5f);
+        using var path = DrawEngine.CreateRoundedPath(rect, 5f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
@@ -177,7 +175,7 @@ public class DrawEngineTests
     {
         Rectangle rect = new(0, 0, 200, 200);
 
-        using GraphicsPath path = DrawEngine.CreateRoundedPath(rect, 100f);
+        using var path = DrawEngine.CreateRoundedPath(rect, 100f);
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);

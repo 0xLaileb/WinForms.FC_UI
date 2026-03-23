@@ -10,7 +10,7 @@ public partial class FProgressBar : FControlBase
 {
     #region Fields
 
-    private Rectangle _valueRect = new();
+    private Rectangle _valueRect;
     private readonly StringFormat _textFormat = new();
     private int _drawnValueWidth;
 
@@ -152,7 +152,7 @@ public partial class FProgressBar : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(300, 34);
+                    Size = new Size(300, 34);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     Value = 0;
@@ -160,7 +160,7 @@ public partial class FProgressBar : FControlBase
                     Maximum = 100;
                     StartDrawingValue = 0;
                     ProgressText = true;
-                    RGB = false;
+                    Rgb = false;
                     ShowBackground = true;
                     Rounding = true;
                     CornerRadius = 70;
@@ -277,21 +277,21 @@ public partial class FProgressBar : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = PrepareGeometry(Height);
+        var roundingValue = PrepareGeometry(Height);
 
         // Border layer
-        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        using var borderLayer = RenderBorderLayer(roundingValue);
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
         // Content layer
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - (int)(2 + BorderWidth),
-                _regionRect.Y - (int)(2 + BorderWidth),
-                _regionRect.Width + (int)(2 + BorderWidth) * 2,
-                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - (int)(2 + BorderWidth),
+                RegionRect.Y - (int)(2 + BorderWidth),
+                RegionRect.Width + (int)(2 + BorderWidth) * 2,
+                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
             using Region clipRegion = new(clipPath);
             g.Clip = clipRegion;
 
@@ -299,13 +299,13 @@ public partial class FProgressBar : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    g.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, _shapePath);
+                    g.FillPath(brush, ShapePath);
                 }
             }
 
@@ -317,18 +317,18 @@ public partial class FProgressBar : FControlBase
     private void DrawText(Graphics graphics)
     {
         using SolidBrush brush = new(ForeColor);
-        int percent = Maximum != 0 ? (int)Math.Round((double)Value / Maximum * 100) : 0;
+        var percent = Maximum != 0 ? (int)Math.Round((double)Value / Maximum * 100) : 0;
         graphics.DrawString(
-            $"{percent}%", Font, brush, _regionRect, _textFormat);
+            $"{percent}%", Font, brush, RegionRect, _textFormat);
     }
 
     private void DrawProgressFill(Graphics graphics, float roundingValue)
     {
         if (Value == 0) return;
 
-        double ratio = Maximum != 0 ? (double)Value / Maximum : 0;
-        _drawnValueWidth = Convert.ToInt32(_shapePath.GetBounds().Width * ratio);
-        _valueRect = new(_regionRect.X, _regionRect.Y, _drawnValueWidth, _regionRect.Height);
+        var ratio = Maximum != 0 ? (double)Value / Maximum : 0;
+        _drawnValueWidth = Convert.ToInt32(ShapePath.GetBounds().Width * ratio);
+        _valueRect = RegionRect with { Width = _drawnValueWidth };
 
         const int offset = 1;
         _valueRect.X -= offset;
@@ -337,16 +337,16 @@ public partial class FProgressBar : FControlBase
         _valueRect.Height += offset * 2;
         roundingValue += offset * 2;
 
-        float valueRounding = Math.Min(roundingValue, Math.Min(_valueRect.Width, _valueRect.Height) / 2f);
+        var valueRounding = Math.Min(roundingValue, Math.Min(_valueRect.Width, _valueRect.Height) / 2f);
         if (valueRounding < 0.5f) valueRounding = 0.1f;
 
-        using GraphicsPath valuePath = DrawEngine.CreateRoundedPath(_valueRect, valueRounding);
+        using var valuePath = DrawEngine.CreateRoundedPath(_valueRect, valueRounding);
 
         if (UseGradientFill)
         {
             using LinearGradientBrush brush = new(_valueRect,
                 Color.FromArgb(FillOpacity, GetRgbOrColor(GradientFillColor1)),
-                Color.FromArgb(FillOpacity, RGB ? DrawEngine.HsvToRgb(_hue + 20, 1f, 1f) : GradientFillColor2),
+                Color.FromArgb(FillOpacity, Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2),
                 360);
             graphics.FillPath(brush, valuePath);
         }

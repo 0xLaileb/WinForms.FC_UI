@@ -1,4 +1,3 @@
-using FC_UI.Components;
 using FC_UI.Controls;
 
 namespace WinForms.FC_UI.Example
@@ -13,7 +12,7 @@ namespace WinForms.FC_UI.Example
         private void Demo_MouseDown(object sender, MouseEventArgs e)
         {
             Capture = false;
-            Message msg = Message.Create(Handle, 0xa1, new IntPtr(2), IntPtr.Zero);
+            var msg = Message.Create(Handle, 0xa1, new IntPtr(2), IntPtr.Zero);
             WndProc(ref msg);
         }
         #endregion
@@ -102,32 +101,32 @@ namespace WinForms.FC_UI.Example
         }
         private async void fSwitchBox_rgb_mode_CheckedChanged()
         {
-            bool isEnabled = fSwitchBox_rgb_mode.Checked;
+            var isEnabled = fSwitchBox_rgb_mode.Checked;
             await Task.Run(async () =>
             {
-                fButton1.Invoke(() => fButton1.RGB = isEnabled);
+                fButton1.Invoke(() => fButton1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fCheckBox1.Invoke(() => fCheckBox1.RGB = isEnabled);
+                fCheckBox1.Invoke(() => fCheckBox1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fRadioButton1.Invoke(() => fRadioButton1.RGB = isEnabled);
+                fRadioButton1.Invoke(() => fRadioButton1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fProgressBar1.Invoke(() => fProgressBar1.RGB = isEnabled);
+                fProgressBar1.Invoke(() => fProgressBar1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fScrollBar1.Invoke(() => fScrollBar1.RGB = isEnabled);
+                fScrollBar1.Invoke(() => fScrollBar1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fGroupBox1.Invoke(() => fGroupBox1.RGB = isEnabled);
+                fGroupBox1.Invoke(() => fGroupBox1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fRichTextBox1.Invoke(() => fRichTextBox1.RGB = isEnabled);
+                fRichTextBox1.Invoke(() => fRichTextBox1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fTextBox1.Invoke(() => fTextBox1.RGB = isEnabled);
+                fTextBox1.Invoke(() => fTextBox1.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fTextBox2.Invoke(() => fTextBox2.RGB = isEnabled);
+                fTextBox2.Invoke(() => fTextBox2.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fSwitchBox_global_rgb.Invoke(() => fSwitchBox_global_rgb.RGB = isEnabled);
+                fSwitchBox_global_rgb.Invoke(() => fSwitchBox_global_rgb.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fSwitchBox_random_style.Invoke(() => fSwitchBox_random_style.RGB = isEnabled);
+                fSwitchBox_random_style.Invoke(() => fSwitchBox_random_style.Rgb = isEnabled);
                 await Task.Delay(1000);
-                fSwitchBox_rgb_mode.Invoke(() => fSwitchBox_rgb_mode.RGB = isEnabled);
+                fSwitchBox_rgb_mode.Invoke(() => fSwitchBox_rgb_mode.Rgb = isEnabled);
             });
         }
         private void fSwitchBox_global_rgb_CheckedChanged()

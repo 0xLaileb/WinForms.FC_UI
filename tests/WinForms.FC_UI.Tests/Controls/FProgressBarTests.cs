@@ -1,4 +1,3 @@
-using System.Drawing;
 using FC_UI.Controls;
 
 namespace WinForms.FC_UI.Tests.Controls;
@@ -130,7 +129,7 @@ public class FProgressBarTests : IDisposable
     [InlineData(101)]
     public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _progressBar.CornerRadius;
+        var original = _progressBar.CornerRadius;
         _progressBar.CornerRadius = value;
 
         Assert.Equal(original, _progressBar.CornerRadius);

@@ -13,7 +13,7 @@ public partial class FCheckBox : FControlBase
 
     private int _animationSize;
     private bool _isMouseHovered;
-    private Size _checkboxSize = new();
+    private Size _checkboxSize;
     private EventHandler? _effectTickHandler;
 
     #endregion
@@ -129,12 +129,12 @@ public partial class FCheckBox : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(140, 45);
+                    Size = new Size(140, 45);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     Checked = false;
                     DisplayText = "FCheckBox";
-                    RGB = false;
+                    Rgb = false;
                     ShowBackground = true;
                     Rounding = true;
                     CornerRadius = 100;
@@ -218,7 +218,7 @@ public partial class FCheckBox : FControlBase
     {
         get
         {
-            CreateParams cp = base.CreateParams;
+            var cp = base.CreateParams;
             cp.ExStyle |= 0x02000000; // WS_CLIPCHILDREN
             return cp;
         }
@@ -256,7 +256,7 @@ public partial class FCheckBox : FControlBase
 
             if (Checked)
             {
-                _effectTickHandler = (sender, args) =>
+                _effectTickHandler = (_, _) =>
                 {
                     _animationSize += 1;
                     Refresh();
@@ -284,9 +284,9 @@ public partial class FCheckBox : FControlBase
 
     protected override void OnSizeChanged(EventArgs e)
     {
-        Size = new(Size.Width, 45);
-        _checkboxSize = new(21, 21);
-        _regionRect = new(15, Size.Height / 2 - 12, _checkboxSize.Width, _checkboxSize.Height);
+        Size = Size with { Height = 45 };
+        _checkboxSize = new Size(21, 21);
+        RegionRect = new Rectangle(15, Size.Height / 2 - 12, _checkboxSize.Width, _checkboxSize.Height);
     }
 
     #endregion
@@ -295,35 +295,41 @@ public partial class FCheckBox : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = 0.1F;
+        var roundingValue = 0.1F;
 
         // Prepare geometry
         if (Rounding && CornerRadius > 0)
             roundingValue = _checkboxSize.Height / 100F * CornerRadius;
 
-        _shapePath?.Dispose();
-        _shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+        ShapePath?.Dispose();
+        ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
 
-        using GraphicsPath regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
         Region?.Dispose();
         Region = new Region(regionPath);
 
         // Layer 1: Border
         Bitmap borderBitmap = new(Width, Height);
-        using (Graphics graphics = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
+        using (var graphics = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
         {
             if (BorderWidth != 0 && ShowBorder)
             {
                 if (UseGradientBorder)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    using Pen pen = new(brush, BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
-                    graphics.DrawPath(pen, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
+                    
+                    using Pen pen = new(brush, BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
+                    graphics.DrawPath(pen, ShapePath);
                 }
                 else
                 {
-                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
-                    graphics.DrawPath(pen, _shapePath);
+                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    graphics.DrawPath(pen, ShapePath);
                 }
             }
         }
@@ -331,7 +337,7 @@ public partial class FCheckBox : FControlBase
 
         // Layer 2: Content
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
             if (EnableClickEffect) DrawClickAnimation(graphics);
             if (EnableHoverEffect && _isMouseHovered) DrawHoverCircleOverlay(graphics);
@@ -340,13 +346,13 @@ public partial class FCheckBox : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    graphics.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    graphics.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    graphics.FillPath(brush, _shapePath);
+                    graphics.FillPath(brush, ShapePath);
                 }
             }
 
@@ -360,7 +366,7 @@ public partial class FCheckBox : FControlBase
         using SolidBrush brush = new(ForeColor);
         graphics.DrawString(
             DisplayText, Font, brush,
-            new Rectangle((int)(25 + _shapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
+            new Rectangle((int)(25 + ShapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
     }
 
     private void DrawCheckMark(Graphics graphics)

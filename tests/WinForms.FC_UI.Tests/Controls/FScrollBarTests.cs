@@ -1,4 +1,3 @@
-using System.Drawing;
 using FC_UI.Controls;
 
 namespace WinForms.FC_UI.Tests.Controls;
@@ -58,8 +57,8 @@ public class FScrollBarTests : IDisposable
     [Fact]
     public void Value_Changed_RaisesValueChangedEvent()
     {
-        bool eventFired = false;
-        _scrollBar.ValueChanged += (sender, args) => eventFired = true;
+        var eventFired = false;
+        _scrollBar.ValueChanged += (_, _) => eventFired = true;
 
         _scrollBar.Value = 10;
 
@@ -70,8 +69,8 @@ public class FScrollBarTests : IDisposable
     public void Value_SameValue_DoesNotRaiseEvent()
     {
         _scrollBar.Value = 0;
-        bool eventFired = false;
-        _scrollBar.ValueChanged += (sender, args) => eventFired = true;
+        var eventFired = false;
+        _scrollBar.ValueChanged += (_, _) => eventFired = true;
 
         _scrollBar.Value = 0;
 
@@ -119,7 +118,7 @@ public class FScrollBarTests : IDisposable
     [InlineData(101)]
     public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _scrollBar.CornerRadius;
+        var original = _scrollBar.CornerRadius;
         _scrollBar.CornerRadius = value;
 
         Assert.Equal(original, _scrollBar.CornerRadius);

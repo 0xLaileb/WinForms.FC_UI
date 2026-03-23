@@ -1,4 +1,3 @@
-using System.Drawing;
 using FC_UI.Controls;
 
 namespace WinForms.FC_UI.Tests.Controls;
@@ -51,7 +50,7 @@ public class FSwitchBoxTests : IDisposable
     [Fact]
     public void Checked_Toggle_RaisesCheckedChanged()
     {
-        bool eventFired = false;
+        var eventFired = false;
         _switchBox.CheckedChanged += () => eventFired = true;
 
         _switchBox.Checked = true;
@@ -92,7 +91,7 @@ public class FSwitchBoxTests : IDisposable
     [InlineData(101)]
     public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _switchBox.CornerRadius;
+        var original = _switchBox.CornerRadius;
         _switchBox.CornerRadius = value;
 
         Assert.Equal(original, _switchBox.CornerRadius);

@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using FC_UI.Controls;
@@ -55,7 +54,7 @@ public class FButtonTests : IDisposable
     [Fact]
     public void Constructor_DefaultStyle_RGBIsFalse()
     {
-        Assert.False(_button.RGB);
+        Assert.False(_button.Rgb);
     }
 
     [Fact]
@@ -109,7 +108,7 @@ public class FButtonTests : IDisposable
     [InlineData(200)]
     public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _button.CornerRadius;
+        var original = _button.CornerRadius;
 
         _button.CornerRadius = value;
 
@@ -168,7 +167,7 @@ public class FButtonTests : IDisposable
     [Fact]
     public void BackgroundColor_SetValue_ReturnsSetValue()
     {
-        Color expected = Color.Red;
+        var expected = Color.Red;
 
         _button.BackgroundColor = expected;
 
@@ -178,7 +177,7 @@ public class FButtonTests : IDisposable
     [Fact]
     public void BorderColor_SetValue_ReturnsSetValue()
     {
-        Color expected = Color.Blue;
+        var expected = Color.Blue;
 
         _button.BorderColor = expected;
 

@@ -13,7 +13,7 @@ public partial class FRadioButton : FControlBase
 
     private int _animationSize;
     private bool _isMouseHovered;
-    private Size _radioSize = new();
+    private Size _radioSize;
     private EventHandler? _effectTickHandler;
 
     #endregion
@@ -167,13 +167,13 @@ public partial class FRadioButton : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(140, 45);
+                    Size = new Size(140, 45);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     Checked = false;
                     SizeChecked = 8;
                     DisplayText = "FRadioButton";
-                    RGB = false;
+                    Rgb = false;
                     ShowBackground = true;
                     Rounding = true;
                     CornerRadius = 100;
@@ -257,7 +257,7 @@ public partial class FRadioButton : FControlBase
     {
         get
         {
-            CreateParams cp = base.CreateParams;
+            var cp = base.CreateParams;
             cp.ExStyle |= 0x02000000;
             return cp;
         }
@@ -294,7 +294,7 @@ public partial class FRadioButton : FControlBase
             _animationSize = _radioSize.Width;
             if (Checked)
             {
-                _effectTickHandler = (sender, args) =>
+                _effectTickHandler = (_, _) =>
                 {
                     _animationSize += 1;
                     Refresh();
@@ -322,9 +322,9 @@ public partial class FRadioButton : FControlBase
 
     protected override void OnSizeChanged(EventArgs e)
     {
-        Size = new(Size.Width, 45);
-        _radioSize = new(21, 21);
-        _regionRect = new(15, base.Size.Height / 2 - 12, _radioSize.Width, _radioSize.Height);
+        Size = Size with { Height = 45 };
+        _radioSize = new Size(21, 21);
+        RegionRect = new Rectangle(15, Size.Height / 2 - 12, _radioSize.Width, _radioSize.Height);
     }
 
     #endregion
@@ -333,31 +333,38 @@ public partial class FRadioButton : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = CalculateRoundingValue(_radioSize.Height);
+        var roundingValue = CalculateRoundingValue(_radioSize.Height);
 
-        _shapePath?.Dispose();
-        _shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+        ShapePath.Dispose();
+        ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
 
-        using GraphicsPath regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
         Region?.Dispose();
         Region = new Region(regionPath);
 
         // Border layer
         Bitmap borderBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
         {
             if (BorderWidth != 0 && ShowBorder)
             {
                 if (UseGradientBorder)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    using Pen pen = new(brush, BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
-                    g.DrawPath(pen, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
+                    
+                    using Pen pen = new(brush, BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
+                    g.DrawPath(pen, ShapePath);
                 }
                 else
                 {
-                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
-                    g.DrawPath(pen, _shapePath);
+                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
+                    g.DrawPath(pen, ShapePath);
                 }
             }
         }
@@ -365,7 +372,7 @@ public partial class FRadioButton : FControlBase
 
         // Content layer
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
             if (EnableClickEffect) DrawClickAnimation(g);
             if (EnableHoverEffect && _isMouseHovered) DrawHoverCircleOverlay(g);
@@ -374,13 +381,13 @@ public partial class FRadioButton : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    g.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, _shapePath);
+                    g.FillPath(brush, ShapePath);
                 }
             }
 
@@ -394,24 +401,24 @@ public partial class FRadioButton : FControlBase
         using SolidBrush brush = new(ForeColor);
         graphics.DrawString(
             DisplayText, Font, brush,
-            new Rectangle((int)(25 + _shapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
+            new Rectangle((int)(25 + ShapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
     }
 
     private void DrawCheckMark(Graphics graphics)
     {
-        Rectangle checkRect = _regionRect;
+        var checkRect = RegionRect;
         checkRect.Width -= SizeChecked;
         checkRect.Height -= SizeChecked;
         checkRect.X = checkRect.X + checkRect.Width / 2 - (10 - SizeChecked);
         checkRect.Y = checkRect.Y + checkRect.Height / 2 - (10 - SizeChecked);
 
-        using GraphicsPath checkPath = DrawEngine.CreateRoundedPath(checkRect, Rounding ? checkRect.Height / 100F * CornerRadius : 0.1F);
+        using var checkPath = DrawEngine.CreateRoundedPath(checkRect, Rounding ? checkRect.Height / 100F * CornerRadius : 0.1F);
 
         if (UseGradientFill)
         {
-            using LinearGradientBrush brush = new(_regionRect,
+            using LinearGradientBrush brush = new(RegionRect,
                 GetRgbOrColor(GradientColor1),
-                RGB ? DrawEngine.HsvToRgb(_hue + 20, 1f, 1f) : GradientColor2,
+                Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientColor2,
                 360);
             graphics.FillPath(brush, checkPath);
         }

@@ -11,11 +11,10 @@ public partial class FTextBox : FControlBase
     #region Fields
 
     private readonly StringFormat _textFormat = new();
-    private readonly TextBox _innerTextBox = new();
     private Font? _cachedFont;
     private int _lastFontHeight = -1;
 
-    public TextBox InnerTextBox => _innerTextBox;
+    public TextBox InnerTextBox { get; } = new();
 
     #endregion
 
@@ -80,11 +79,11 @@ public partial class FTextBox : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(200, 40);
+                    Size = new Size(200, 40);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     DisplayText = "FTextBox";
-                    RGB = false;
+                    Rgb = false;
                     Password = false;
                     PasswordChar = '●';
                     Rounding = true;
@@ -144,8 +143,8 @@ public partial class FTextBox : FControlBase
         _textFormat.Alignment = StringAlignment.Center;
         _textFormat.LineAlignment = StringAlignment.Center;
 
-        InnerTextBox.Text = "Text";
-        InnerTextBox.TextChanged += (sender, e) => DisplayText = InnerTextBox.Text;
+        InnerTextBox.Text = @"Text";
+        InnerTextBox.TextChanged += (_, _) => DisplayText = InnerTextBox.Text;
         UpdateTextBox(false);
         Controls.Add(InnerTextBox);
 
@@ -165,14 +164,14 @@ public partial class FTextBox : FControlBase
     public void UpdateTextBox(bool visible)
     {
         InnerTextBox.Visible = visible;
-        InnerTextBox.Size = new((int)(_controlSize.Width - CornerRadius / 2 - BorderWidth / 2), _controlSize.Height / 2);
-        InnerTextBox.Location = new(Width / 2 - InnerTextBox.Size.Width / 2, Height / 2 - InnerTextBox.Size.Height / 2);
+        InnerTextBox.Size = new Size((int)(ControlSize.Width - CornerRadius / 2 - BorderWidth / 2), ControlSize.Height / 2);
+        InnerTextBox.Location = new Point(Width / 2 - InnerTextBox.Size.Width / 2, Height / 2 - InnerTextBox.Size.Height / 2);
         if (BackgroundColor.Name != "Transparent") InnerTextBox.BackColor = BackgroundColor;
         InnerTextBox.ForeColor = Color.WhiteSmoke;
         InnerTextBox.BorderStyle = BorderStyle.None;
         if (Height != _lastFontHeight)
         {
-            float fontSize = Math.Max(1f, Height / 4f);
+            var fontSize = Math.Max(1f, Height / 4f);
             _cachedFont?.Dispose();
             _cachedFont = new Font(Font.Name, fontSize, Font.Style);
             Font = _cachedFont;
@@ -210,19 +209,19 @@ public partial class FTextBox : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = CalculateRoundingValue(Height);
-        using var shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
-        using var regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        var roundingValue = CalculateRoundingValue(Height);
+        using var shapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
+        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
         Region?.Dispose();
         Region = new Region(regionPath);
 
         // Border layer
         Bitmap borderBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
         {
             if (Lighting)
             {
-                using var shadowPath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+                using var shadowPath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
                 DrawEngine.DrawBlurredShadow(g, LightingColor, shadowPath, LightingAlpha, LightingWidth);
             }
 
@@ -230,13 +229,20 @@ public partial class FTextBox : FControlBase
             {
                 if (UseGradientBorder)
                 {
-                    using var brush = new LinearGradientBrush(_regionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    using var pen = new Pen(brush, BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
+                    using var brush = new LinearGradientBrush(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
+                    
+                    using var pen = new Pen(brush, BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
                     g.DrawPath(pen, shapePath);
                 }
                 else
                 {
-                    using var pen = new Pen(GetRgbOrColor(BorderColor), BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
+                    using var pen = new Pen(GetRgbOrColor(BorderColor), BorderWidth);
+                    pen.LineJoin = LineJoin.Round;
+                    pen.DashCap = DashCap.Round;
+                    
                     g.DrawPath(pen, shapePath);
                 }
             }
@@ -245,13 +251,13 @@ public partial class FTextBox : FControlBase
 
         // Content layer
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            using var clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - (int)(2 + BorderWidth),
-                _regionRect.Y - (int)(2 + BorderWidth),
-                _regionRect.Width + (int)(2 + BorderWidth) * 2,
-                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - (int)(2 + BorderWidth),
+                RegionRect.Y - (int)(2 + BorderWidth),
+                RegionRect.Width + (int)(2 + BorderWidth) * 2,
+                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
             using var clipRegion = new Region(clipPath);
             g.Clip = clipRegion;
 

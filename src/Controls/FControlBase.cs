@@ -24,10 +24,10 @@ public abstract class FControlBase : UserControl
 
     #region Fields
 
-    protected float _hue;
-    protected Rectangle _regionRect = new();
-    protected GraphicsPath _shapePath = new();
-    protected Size _controlSize = new();
+    protected float Hue;
+    protected Rectangle RegionRect;
+    protected GraphicsPath ShapePath = new();
+    protected Size ControlSize;
     private EventHandler? _rgbTickHandler;
     private EventHandler? _globalRgbTickHandler;
 
@@ -48,16 +48,14 @@ public abstract class FControlBase : UserControl
         set => _rgbTimer.Interval = value;
     }
 
-    private bool _isRgbEnabled;
-
     [Description("Enable/Disable RGB mode")]
     [DefaultValue(false)]
-    public bool RGB
+    public bool Rgb
     {
-        get => _isRgbEnabled;
+        get;
         set
         {
-            _isRgbEnabled = value;
+            field = value;
 
             _rgbTimer.Stop();
             if (_rgbTickHandler is not null)
@@ -65,27 +63,28 @@ public abstract class FControlBase : UserControl
                 _rgbTimer.Tick -= _rgbTickHandler;
                 _rgbTickHandler = null;
             }
+
             if (_globalRgbTickHandler is not null)
             {
                 DrawEngine.GlobalRgbTimer.Tick -= _globalRgbTickHandler;
                 _globalRgbTickHandler = null;
             }
 
-            if (_isRgbEnabled)
+            if (field)
             {
                 if (DrawEngine.GlobalRgbTimer.Enabled)
                 {
                     // HsvToRgb already uses s_globalHue when GlobalRgbTimer is active;
                     // subscribe for repaints only.
-                    _globalRgbTickHandler = (sender, args) => Refresh();
+                    _globalRgbTickHandler = (_, _) => Refresh();
                     DrawEngine.GlobalRgbTimer.Tick += _globalRgbTickHandler;
                 }
                 else
                 {
-                    _rgbTickHandler = (sender, args) =>
+                    _rgbTickHandler = (_, _) =>
                     {
-                        _hue += 4;
-                        if (_hue >= 360) _hue = 0;
+                        Hue += 4;
+                        if (Hue >= 360) Hue = 0;
                         Refresh();
                     };
                     _rgbTimer.Tick += _rgbTickHandler;
@@ -289,16 +288,14 @@ public abstract class FControlBase : UserControl
 
     // --- Graphics Quality ---
 
-    private SmoothingMode _smoothingMode;
-
     [Description("Graphics smoothing mode")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public SmoothingMode SmoothingMode
     {
-        get => _smoothingMode;
+        get;
         set
         {
-            if (value != SmoothingMode.Invalid) _smoothingMode = value;
+            if (value != SmoothingMode.Invalid) field = value;
             Refresh();
         }
     }
@@ -346,7 +343,7 @@ public abstract class FControlBase : UserControl
                 _globalRgbTickHandler = null;
             }
             _rgbTimer.Dispose();
-            _shapePath.Dispose();
+            ShapePath.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -370,9 +367,9 @@ public abstract class FControlBase : UserControl
     /// </summary>
     protected void RecalculateRegion()
     {
-        int margin = (int)((ShowBorder ? BorderWidth : 0) + (Lighting ? LightingWidth / 4 : 0));
-        _controlSize = new(Width - margin * 2, Height - margin * 2);
-        _regionRect = new(margin, margin, _controlSize.Width, _controlSize.Height);
+        var margin = (int)((ShowBorder ? BorderWidth : 0) + (Lighting ? LightingWidth / 4 : 0));
+        ControlSize = new Size(Width - margin * 2, Height - margin * 2);
+        RegionRect = new Rectangle(margin, margin, ControlSize.Width, ControlSize.Height);
     }
 
     /// <summary>
@@ -389,7 +386,7 @@ public abstract class FControlBase : UserControl
     /// Returns the current RGB color or the provided fallback color.
     /// </summary>
     protected Color GetRgbOrColor(Color fallback) =>
-        RGB ? DrawEngine.HsvToRgb(_hue, 1f, 1f) : fallback;
+        Rgb ? DrawEngine.HsvToRgb(Hue, 1f, 1f) : fallback;
 
     /// <summary>
     /// Prepares geometry: updates shape path, creates region.
@@ -397,12 +394,12 @@ public abstract class FControlBase : UserControl
     /// </summary>
     protected float PrepareGeometry(float referenceHeight)
     {
-        float roundingValue = CalculateRoundingValue(referenceHeight);
+        var roundingValue = CalculateRoundingValue(referenceHeight);
 
-        _shapePath?.Dispose();
-        _shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+        ShapePath.Dispose();
+        ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
 
-        using GraphicsPath regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
         Region?.Dispose();
         Region = new Region(regionPath);
 
@@ -415,11 +412,11 @@ public abstract class FControlBase : UserControl
     protected Bitmap RenderBorderLayer(float roundingValue)
     {
         Bitmap bitmap = new(Width, Height);
-        using Graphics graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode, TextRenderingHint);
+        using var graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode, TextRenderingHint);
 
         if (Lighting)
         {
-            using GraphicsPath shadowPath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+            using var shadowPath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
             DrawEngine.DrawBlurredShadow(graphics, LightingColor, shadowPath, LightingAlpha, LightingWidth);
         }
 
@@ -427,14 +424,21 @@ public abstract class FControlBase : UserControl
         {
             if (UseGradientBorder)
             {
-                using LinearGradientBrush brush = new(_regionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                using Pen pen = new(brush, BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
-                graphics.DrawPath(pen, _shapePath);
+                using LinearGradientBrush brush = new(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
+                
+                using Pen pen = new(brush, BorderWidth);
+                pen.LineJoin = LineJoin.Round;
+                pen.DashCap = DashCap.Round;
+                
+                graphics.DrawPath(pen, ShapePath);
             }
             else
             {
-                using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth) { LineJoin = LineJoin.Round, DashCap = DashCap.Round };
-                graphics.DrawPath(pen, _shapePath);
+                using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth);
+                pen.LineJoin = LineJoin.Round;
+                pen.DashCap = DashCap.Round;
+                
+                graphics.DrawPath(pen, ShapePath);
             }
         }
 
@@ -447,15 +451,15 @@ public abstract class FControlBase : UserControl
     protected Bitmap RenderContentLayer(float roundingValue)
     {
         Bitmap bitmap = new(Width, Height);
-        using Graphics graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode, TextRenderingHint);
+        using var graphics = HelpEngine.GetGraphics(bitmap, SmoothingMode, TextRenderingHint);
 
         // Clip region
-        int offset = 1;
-        using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-            _regionRect.X - offset,
-            _regionRect.Y - offset,
-            _regionRect.Width + offset * 2,
-            _regionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
+        var offset = 1;
+        using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+            RegionRect.X - offset,
+            RegionRect.Y - offset,
+            RegionRect.Width + offset * 2,
+            RegionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
         using Region clipRegion = new(clipPath);
         graphics.Clip = clipRegion;
 
@@ -463,13 +467,13 @@ public abstract class FControlBase : UserControl
         {
             if (UseGradientBackground)
             {
-                using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                graphics.FillPath(brush, _shapePath);
+                using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                graphics.FillPath(brush, ShapePath);
             }
             else
             {
                 using SolidBrush brush = new(BackgroundColor);
-                graphics.FillPath(brush, _shapePath);
+                graphics.FillPath(brush, ShapePath);
             }
         }
 
@@ -482,10 +486,10 @@ public abstract class FControlBase : UserControl
     /// </summary>
     protected void DrawLayeredBackground(Graphics formGraphics, float roundingValue)
     {
-        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        using var borderLayer = RenderBorderLayer(roundingValue);
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
-        using Bitmap contentLayer = RenderContentLayer(roundingValue);
+        using var contentLayer = RenderContentLayer(roundingValue);
         formGraphics.DrawImage(contentLayer, PointF.Empty);
     }
 

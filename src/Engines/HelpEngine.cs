@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 
@@ -6,12 +5,6 @@ namespace FC_UI;
 
 internal static class HelpEngine
 {
-    /// <summary>
-    /// Shows an error MessageBox with preset parameters.
-    /// </summary>
-    public static void ShowError(string text) =>
-        System.Windows.Forms.MessageBox.Show(text, "FC-UI", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-
     /// <summary>
     /// Creates a new <c>Font</c> with default FC_UI parameters.
     /// </summary>
@@ -25,7 +18,7 @@ internal static class HelpEngine
     /// </summary>
     public static Graphics GetGraphics(Bitmap bitmap, SmoothingMode smoothingMode, TextRenderingHint textRenderingHint)
     {
-        Graphics graphics = Graphics.FromImage(bitmap);
+        var graphics = Graphics.FromImage(bitmap);
         graphics.SmoothingMode = smoothingMode;
         graphics.TextRenderingHint = textRenderingHint;
         return graphics;

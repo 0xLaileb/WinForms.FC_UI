@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Drawing.Drawing2D;
 using FC_UI.Controls;
 
@@ -46,7 +45,7 @@ public class FGroupBoxTests : IDisposable
     [Fact]
     public void Constructor_DefaultStyle_RGBIsFalse()
     {
-        Assert.False(_groupBox.RGB);
+        Assert.False(_groupBox.Rgb);
     }
 
     [Fact]
@@ -77,7 +76,7 @@ public class FGroupBoxTests : IDisposable
     [InlineData(101)]
     public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _groupBox.CornerRadius;
+        var original = _groupBox.CornerRadius;
         _groupBox.CornerRadius = value;
 
         Assert.Equal(original, _groupBox.CornerRadius);

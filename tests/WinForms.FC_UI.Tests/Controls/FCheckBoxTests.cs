@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Drawing.Drawing2D;
 using FC_UI.Controls;
 
@@ -51,7 +50,7 @@ public class FCheckBoxTests : IDisposable
     [Fact]
     public void Checked_Toggle_RaisesCheckedChanged()
     {
-        bool eventFired = false;
+        var eventFired = false;
         _checkBox.CheckedChanged += () => eventFired = true;
 
         _checkBox.Checked = true;
@@ -92,7 +91,7 @@ public class FCheckBoxTests : IDisposable
     [InlineData(101)]
     public void CornerRadius_InvalidValues_AreRejected(int value)
     {
-        int original = _checkBox.CornerRadius;
+        var original = _checkBox.CornerRadius;
         _checkBox.CornerRadius = value;
 
         Assert.Equal(original, _checkBox.CornerRadius);

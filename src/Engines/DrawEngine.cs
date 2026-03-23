@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Drawing.Drawing2D;
 using Timer = System.Windows.Forms.Timer;
 
@@ -28,17 +27,17 @@ internal static class DrawEngine
     /// </summary>
     public static void DrawBlurredShadow(Graphics graphics, Color color, Point start, Point end, int maxAlpha, int penWidth)
     {
-        float alphaStep = (float)maxAlpha / penWidth;
-        float currentAlpha = alphaStep;
+        var alphaStep = (float)maxAlpha / penWidth;
+        var currentAlpha = alphaStep;
 
-        for (int width = penWidth; width > 0; width--)
+        for (var width = penWidth; width > 0; width--)
         {
-            Color blurredColor = Color.FromArgb((int)currentAlpha, color);
-            using Pen pen = new(blurredColor, width)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round
-            };
+            var blurredColor = Color.FromArgb((int)currentAlpha, color);
+
+            using Pen pen = new(blurredColor, width);
+
+            pen.StartCap = LineCap.Round;
+            pen.EndCap = LineCap.Round;
 
             graphics.DrawLine(pen, start, end);
             currentAlpha += alphaStep;
@@ -50,16 +49,14 @@ internal static class DrawEngine
     /// </summary>
     public static void DrawBlurredShadow(Graphics graphics, Color color, GraphicsPath path, int maxAlpha, int penWidth)
     {
-        float alphaStep = (float)maxAlpha / penWidth;
-        float currentAlpha = alphaStep;
+        var alphaStep = (float)maxAlpha / penWidth;
+        var currentAlpha = alphaStep;
 
-        for (int width = penWidth; width > 0; width--)
+        for (var width = penWidth; width > 0; width--)
         {
-            using Pen pen = new(Color.FromArgb((int)currentAlpha, color), width)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round
-            };
+            using Pen pen = new(Color.FromArgb((int)currentAlpha, color), width);
+            pen.StartCap = LineCap.Round;
+            pen.EndCap = LineCap.Round;
             currentAlpha += alphaStep;
 
             graphics.DrawPath(pen, path);
@@ -68,14 +65,14 @@ internal static class DrawEngine
 
     #region RGB
 
-    private static float s_globalHue;
+    private static float _sGlobalHue;
 
     /// <summary>
     /// Timer for redrawing controls at a specified interval in global RGB mode.
     /// </summary>
     public static readonly Timer GlobalRgbTimer = new() { Interval = 50 };
 
-    private static EventHandler? s_globalRgbHandler;
+    private static EventHandler? _sGlobalRgbHandler;
 
     /// <summary>
     /// Enables or disables the global RGB timer.
@@ -84,20 +81,20 @@ internal static class DrawEngine
     {
         GlobalRgbTimer.Stop();
 
-        if (s_globalRgbHandler is not null)
+        if (_sGlobalRgbHandler is not null)
         {
-            GlobalRgbTimer.Tick -= s_globalRgbHandler;
-            s_globalRgbHandler = null;
+            GlobalRgbTimer.Tick -= _sGlobalRgbHandler;
+            _sGlobalRgbHandler = null;
         }
 
         if (!enabled) return;
 
-        s_globalRgbHandler = static (sender, args) =>
+        _sGlobalRgbHandler = static (_, _) =>
         {
-            s_globalHue += 4;
-            if (s_globalHue >= 360) s_globalHue = 0;
+            _sGlobalHue += 4;
+            if (_sGlobalHue >= 360) _sGlobalHue = 0;
         };
-        GlobalRgbTimer.Tick += s_globalRgbHandler;
+        GlobalRgbTimer.Tick += _sGlobalRgbHandler;
         GlobalRgbTimer.Start();
     }
 
@@ -112,19 +109,19 @@ internal static class DrawEngine
     {
         if (saturation < float.Epsilon)
         {
-            int gray = (int)(value * 255);
+            var gray = (int)(value * 255);
             return Color.FromArgb(gray, gray, gray);
         }
 
-        if (GlobalRgbTimer.Enabled) hue = s_globalHue;
+        if (GlobalRgbTimer.Enabled) hue = _sGlobalHue;
 
         hue /= 60;
-        int sector = (int)Math.Floor(hue);
+        var sector = (int)Math.Floor(hue);
 
-        float f = hue - sector;
-        float p = value * (1 - saturation);
-        float q = value * (1 - saturation * f);
-        float t = value * (1 - saturation * (1 - f));
+        var f = hue - sector;
+        var p = value * (1 - saturation);
+        var q = value * (1 - saturation * f);
+        var t = value * (1 - saturation * (1 - f));
 
         var (r, g, b) = sector switch
         {
@@ -133,7 +130,7 @@ internal static class DrawEngine
             2 => (p, value, t),
             3 => (p, q, value),
             4 => (t, p, value),
-            _ => (value, p, q),
+            _ => (value, p, q)
         };
 
         return Color.FromArgb(255, (int)(r * 255), (int)(g * 255), (int)(b * 255));

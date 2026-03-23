@@ -30,11 +30,11 @@ public partial class FGroupBox : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(150, 130);
+                    Size = new Size(150, 130);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     ShowBackground = true;
-                    RGB = false;
+                    Rgb = false;
                     Rounding = true;
                     CornerRadius = 60;
                     BackgroundColor = Color.FromArgb(37, 52, 68);
@@ -134,21 +134,21 @@ public partial class FGroupBox : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = PrepareGeometry(Height);
+        var roundingValue = PrepareGeometry(Height);
 
         // Border layer
-        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        using var borderLayer = RenderBorderLayer(roundingValue);
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
         // Content layer with wider clip for GroupBox
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - (int)(2 + BorderWidth),
-                _regionRect.Y - (int)(2 + BorderWidth),
-                _regionRect.Width + (int)(2 + BorderWidth) * 2,
-                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - (int)(2 + BorderWidth),
+                RegionRect.Y - (int)(2 + BorderWidth),
+                RegionRect.Width + (int)(2 + BorderWidth) * 2,
+                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
             using Region clipRegion = new(clipPath);
             g.Clip = clipRegion;
 
@@ -156,13 +156,13 @@ public partial class FGroupBox : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    g.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, _shapePath);
+                    g.FillPath(brush, ShapePath);
                 }
             }
         }

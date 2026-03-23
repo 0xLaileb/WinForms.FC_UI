@@ -53,14 +53,14 @@ public partial class ZColorPicker : UserControl
         pictureBox3.Tag = new BrightnessBox();
 
         Bitmap wheel = new(pictureBox1.Width, pictureBox1.Height);
-        using (Graphics g = Graphics.FromImage(wheel))
+        using (var g = Graphics.FromImage(wheel))
         {
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             DrawWheel(wheel.Width / 2f, g);
         }
         pictureBox1.Image = wheel;
-        _cursorPosition = new(pictureBox1.Height / 2f, pictureBox1.Height / 2f);
+        _cursorPosition = new PointF(pictureBox1.Height / 2f, pictureBox1.Height / 2f);
     }
 
     #endregion
@@ -147,10 +147,10 @@ public partial class ZColorPicker : UserControl
     {
         PathGradientBrush brush = new(path) { CenterColor = Color.White };
 
-        Color[] colors = new Color[path.PointCount];
-        for (int i = 0; i < colors.Length; i++)
+        var colors = new Color[path.PointCount];
+        for (var i = 0; i < colors.Length; i++)
         {
-            float hue = (float)i / colors.Length;
+            var hue = (float)i / colors.Length;
             colors[i] = DrawEngine.HsvToRgb(hue * 360, 1f, 1f);
         }
         brush.SurroundColors = colors;
@@ -160,42 +160,44 @@ public partial class ZColorPicker : UserControl
 
     private Color GetPixelColorFromWheel(float x, float y, float brightness, float radius)
     {
-        float distance = MathF.Sqrt(x * x + y * y);
-        float saturation = distance / radius;
+        var distance = MathF.Sqrt(x * x + y * y);
+        var saturation = distance / radius;
         if (saturation > 1) return Color.Transparent;
 
-        double angle;
-        if (x > 0 && y > 0) angle = Math.Asin(y / distance);
-        else if (x <= 0 && y > 0) angle = Math.Acos(y / distance) + Math.PI / 2;
-        else if (x <= 0 && y <= 0) angle = Math.Asin(-y / distance) + Math.PI;
-        else angle = Math.Acos(-y / distance) + 3 * Math.PI / 2;
+        var angle = x switch
+        {
+            > 0 when y > 0 => Math.Asin(y / distance),
+            <= 0 when y > 0 => Math.Acos(y / distance) + Math.PI / 2,
+            <= 0 when y <= 0 => Math.Asin(-y / distance) + Math.PI,
+            _ => Math.Acos(-y / distance) + 3 * Math.PI / 2
+        };
 
-        float hue = (float)(angle / Math.PI / 2) * 360;
+        var hue = (float)(angle / Math.PI / 2) * 360;
         return DrawEngine.HsvToRgb(hue, saturation, brightness);
     }
 
     private Color PickColor(float x, float y)
     {
-        float centerX = pictureBox1.Width / 2f;
-        float centerY = pictureBox1.Height / 2f;
-        float relX = x - centerX;
-        float relY = y - centerY;
-        float distance = MathF.Sqrt(relX * relX + relY * relY);
+        var centerX = pictureBox1.Width / 2f;
+        var centerY = pictureBox1.Height / 2f;
+        var relX = x - centerX;
+        var relY = y - centerY;
+        var distance = MathF.Sqrt(relX * relX + relY * relY);
 
         if (distance > centerX)
         {
-            float scale = centerX / distance;
+            var scale = centerX / distance;
             relX *= scale;
             relY *= scale;
         }
 
-        float brightness = pictureBox3.Tag is BrightnessBox bb ? bb.Value : 1f;
-        Color color = GetPixelColorFromWheel(relX, relY, brightness, centerX);
+        var brightness = pictureBox3.Tag is BrightnessBox bb ? bb.Value : 1f;
+        var color = GetPixelColorFromWheel(relX, relY, brightness, centerX);
         if (color == Color.Transparent) return Color.Empty;
 
-        label1.Text = $"RGB: {color.R}, {color.G}, {color.B}";
-        label2.Text = $"HEX: #{color.ToArgb():X}";
-        _cursorPosition = new(relX + centerX, relY + centerY);
+        label1.Text = $@"RGB: {color.R}, {color.G}, {color.B}";
+        label2.Text = $@"HEX: #{color.ToArgb():X}";
+        _cursorPosition = new PointF(relX + centerX, relY + centerY);
         pictureBox2.BackColor = color;
         if (pictureBox3.Tag is BrightnessBox brightnessBox) brightnessBox.Color = color;
         pictureBox1.Tag = new PointF(x, y);

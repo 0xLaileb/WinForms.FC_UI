@@ -11,7 +11,7 @@ public partial class FScrollBar : FControlBase
 {
     #region Fields
 
-    private Rectangle _thumbRect = new();
+    private Rectangle _thumbRect;
 
     #endregion
 
@@ -44,14 +44,14 @@ public partial class FScrollBar : FControlBase
         get;
         set
         {
-            if (value == System.Windows.Forms.Orientation.Vertical)
+            if (value == Orientation.Vertical)
             {
-                Size = new(Size.Width, Size.Height);
+                Size = new Size(Size.Width, Size.Height);
                 if (CornerRadius != 0) CornerRadius /= 10;
             }
             else
             {
-                Size = new(Size.Height, Size.Width);
+                Size = new Size(Size.Height, Size.Width);
                 if (CornerRadius != 0) CornerRadius *= 10;
             }
             field = value;
@@ -175,16 +175,16 @@ public partial class FScrollBar : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(26, 300);
+                    Size = new Size(26, 300);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     Value = 0;
                     Minimum = 0;
                     Maximum = 100;
-                    Orientation = System.Windows.Forms.Orientation.Vertical;
+                    Orientation = Orientation.Vertical;
                     ThumbSize = 60;
                     SmallStep = 1;
-                    RGB = false;
+                    Rgb = false;
                     ShowBackground = true;
                     ShowBorder = true;
                     BorderWidth = 3F;
@@ -303,25 +303,25 @@ public partial class FScrollBar : FControlBase
 
     private void HandleMouseScroll(MouseEventArgs e)
     {
-        int newValue = Value;
+        var newValue = Value;
 
         switch (Orientation)
         {
-            case System.Windows.Forms.Orientation.Vertical:
+            case Orientation.Vertical:
                 if (e.Y < 0) newValue -= SmallStep;
-                else if (e.Y > _regionRect.Height) newValue += SmallStep;
+                else if (e.Y > RegionRect.Height) newValue += SmallStep;
                 else
                 {
-                    int range = _regionRect.Height - ThumbSize;
+                    var range = RegionRect.Height - ThumbSize;
                     if (range > 0) newValue = Maximum * (e.Y - ThumbSize / 2) / range;
                 }
                 break;
-            case System.Windows.Forms.Orientation.Horizontal:
+            case Orientation.Horizontal:
                 if (e.X < 0) newValue -= SmallStep;
-                else if (e.X > _regionRect.Width) newValue += SmallStep;
+                else if (e.X > RegionRect.Width) newValue += SmallStep;
                 else
                 {
-                    int range = _regionRect.Width - ThumbSize;
+                    var range = RegionRect.Width - ThumbSize;
                     if (range > 0) newValue = Maximum * (e.X - ThumbSize / 2) / range;
                 }
                 break;
@@ -335,21 +335,21 @@ public partial class FScrollBar : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = PrepareGeometry(Height);
+        var roundingValue = PrepareGeometry(Height);
 
         // Border layer
-        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        using var borderLayer = RenderBorderLayer(roundingValue);
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
         // Content layer
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - (int)(2 + BorderWidth),
-                _regionRect.Y - (int)(2 + BorderWidth),
-                _regionRect.Width + (int)(2 + BorderWidth) * 2,
-                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - (int)(2 + BorderWidth),
+                RegionRect.Y - (int)(2 + BorderWidth),
+                RegionRect.Width + (int)(2 + BorderWidth) * 2,
+                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
             using Region clipRegion = new(clipPath);
             g.Clip = clipRegion;
 
@@ -357,13 +357,13 @@ public partial class FScrollBar : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    g.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, _shapePath);
+                    g.FillPath(brush, ShapePath);
                 }
             }
 
@@ -375,28 +375,28 @@ public partial class FScrollBar : FControlBase
     private void DrawThumb(Graphics graphics, float roundingValue)
     {
         if (Maximum <= 0) return;
-        _thumbRect = new(2, 2, _regionRect.Width, ThumbSize);
+        _thumbRect = new Rectangle(2, 2, RegionRect.Width, ThumbSize);
 
         switch (Orientation)
         {
-            case System.Windows.Forms.Orientation.Vertical:
+            case Orientation.Vertical:
             {
-                int vRange = _regionRect.Height - ThumbSize;
-                _thumbRect = new(
-                    _regionRect.X,
-                    _regionRect.Y + (vRange > 0 ? Value * vRange / Maximum : 0),
-                    _regionRect.Width,
+                var vRange = RegionRect.Height - ThumbSize;
+                _thumbRect = new Rectangle(
+                    RegionRect.X,
+                    RegionRect.Y + (vRange > 0 ? Value * vRange / Maximum : 0),
+                    RegionRect.Width,
                     ThumbSize);
                 break;
             }
-            case System.Windows.Forms.Orientation.Horizontal:
+            case Orientation.Horizontal:
             {
-                int hRange = _regionRect.Width - ThumbSize;
-                _thumbRect = new(
-                    _regionRect.X + (hRange > 0 ? Value * hRange / Maximum : 0),
-                    _regionRect.Y,
+                var hRange = RegionRect.Width - ThumbSize;
+                _thumbRect = new Rectangle(
+                    RegionRect.X + (hRange > 0 ? Value * hRange / Maximum : 0),
+                    RegionRect.Y,
                     ThumbSize,
-                    _regionRect.Height);
+                    RegionRect.Height);
                 break;
             }
         }
@@ -408,13 +408,13 @@ public partial class FScrollBar : FControlBase
         _thumbRect.Height += offset * 2;
         roundingValue += offset * 2;
 
-        using GraphicsPath thumbPath = DrawEngine.CreateRoundedPath(_thumbRect, roundingValue);
+        using var thumbPath = DrawEngine.CreateRoundedPath(_thumbRect, roundingValue);
 
         if (UseGradientFill)
         {
-            using LinearGradientBrush brush = new(_regionRect,
+            using LinearGradientBrush brush = new(RegionRect,
                 Color.FromArgb(ThumbOpacity, GetRgbOrColor(GradientFillColor1)),
-                Color.FromArgb(ThumbOpacity, RGB ? DrawEngine.HsvToRgb(_hue + 20, 1f, 1f) : GradientFillColor2),
+                Color.FromArgb(ThumbOpacity, Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2),
                 360);
             graphics.FillPath(brush, thumbPath);
         }

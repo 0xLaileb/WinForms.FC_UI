@@ -82,11 +82,11 @@ public partial class FSwitchBox : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(35, 20);
+                    Size = new Size(35, 20);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     Checked = false;
-                    RGB = false;
+                    Rgb = false;
                     ShowBackground = true;
                     Rounding = true;
                     CornerRadius = 90;
@@ -195,28 +195,28 @@ public partial class FSwitchBox : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = CalculateRoundingValue(_controlSize.Height);
+        var roundingValue = CalculateRoundingValue(ControlSize.Height);
 
-        _shapePath?.Dispose();
-        _shapePath = DrawEngine.CreateRoundedPath(_regionRect, roundingValue);
+        ShapePath.Dispose();
+        ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
 
-        using GraphicsPath regionPath = DrawEngine.CreateRoundedPath(new(0, 0, Width, Height), roundingValue);
+        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
         Region?.Dispose();
         Region = new Region(regionPath);
 
         // Border layer
-        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        using var borderLayer = RenderBorderLayer(roundingValue);
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
         // Content layer
         Bitmap contentBitmap = new(Width, Height);
-        using (Graphics g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - (int)(2 + BorderWidth),
-                _regionRect.Y - (int)(2 + BorderWidth),
-                _regionRect.Width + (int)(2 + BorderWidth) * 2,
-                _regionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - (int)(2 + BorderWidth),
+                RegionRect.Y - (int)(2 + BorderWidth),
+                RegionRect.Width + (int)(2 + BorderWidth) * 2,
+                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
             using Region clipRegion = new(clipPath);
             g.Clip = clipRegion;
 
@@ -224,13 +224,13 @@ public partial class FSwitchBox : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    g.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, _shapePath);
+                    g.FillPath(brush, ShapePath);
                 }
             }
 
@@ -245,17 +245,17 @@ public partial class FSwitchBox : FControlBase
 
         if (Checked)
         {
-            int offsetY = _regionRect.Height / 6;
-            toggleRect.Height = _regionRect.Height - offsetY * 2;
+            var offsetY = RegionRect.Height / 6;
+            toggleRect.Height = RegionRect.Height - offsetY * 2;
             toggleRect.Width = toggleRect.Height;
-            toggleRect.X = _regionRect.X + _regionRect.Width - (_regionRect.Width / 10) - toggleRect.Width;
-            toggleRect.Y = _regionRect.Y + offsetY;
+            toggleRect.X = RegionRect.X + RegionRect.Width - (RegionRect.Width / 10) - toggleRect.Width;
+            toggleRect.Y = RegionRect.Y + offsetY;
 
             if (UseGradientFill)
             {
-                using LinearGradientBrush brush = new(_regionRect,
+                using LinearGradientBrush brush = new(RegionRect,
                     GetRgbOrColor(GradientFillColor1),
-                    RGB ? DrawEngine.HsvToRgb(_hue + 20, 1f, 1f) : GradientFillColor2,
+                    Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2,
                     360);
                 graphics.FillEllipse(brush, toggleRect);
             }
@@ -267,11 +267,11 @@ public partial class FSwitchBox : FControlBase
         }
         else
         {
-            int offsetX = _regionRect.Width / 10;
-            int offsetY = _regionRect.Height / 6;
-            toggleRect.X = _regionRect.X + offsetX;
-            toggleRect.Y = _regionRect.Y + offsetY;
-            toggleRect.Height = _regionRect.Height - offsetY * 2;
+            var offsetX = RegionRect.Width / 10;
+            var offsetY = RegionRect.Height / 6;
+            toggleRect.X = RegionRect.X + offsetX;
+            toggleRect.Y = RegionRect.Y + offsetY;
+            toggleRect.Height = RegionRect.Height - offsetY * 2;
             toggleRect.Width = toggleRect.Height;
             const float dimFactor = 0.5F;
 
@@ -279,14 +279,14 @@ public partial class FSwitchBox : FControlBase
 
             if (UseGradientFill)
             {
-                Color c1 = DimColor(GetRgbOrColor(GradientFillColor1));
-                Color c2 = DimColor(RGB ? DrawEngine.HsvToRgb(_hue + 20, 1f, 1f) : GradientFillColor2);
-                using LinearGradientBrush brush = new(_regionRect, c1, c2, 360);
+                var c1 = DimColor(GetRgbOrColor(GradientFillColor1));
+                var c2 = DimColor(Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2);
+                using LinearGradientBrush brush = new(RegionRect, c1, c2, 360);
                 graphics.FillEllipse(brush, toggleRect);
             }
             else
             {
-                Color dimmed = DimColor(GetRgbOrColor(ColorValue));
+                var dimmed = DimColor(GetRgbOrColor(ColorValue));
                 using SolidBrush brush = new(Color.FromArgb(100, dimmed.R, dimmed.G, dimmed.B));
                 graphics.FillEllipse(brush, toggleRect);
             }

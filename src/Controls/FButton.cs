@@ -12,7 +12,7 @@ public partial class FButton : FControlBase
 {
     #region Fields
 
-    private Point _clickLocation = new();
+    private Point _clickLocation;
     private readonly StringFormat _textFormat = new();
     private int _animationSize;
     private bool _isMouseHovered;
@@ -98,11 +98,11 @@ public partial class FButton : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
-                    Size = new(130, 50);
+                    Size = new Size(130, 50);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     DisplayText = "FButton";
-                    RGB = false;
+                    Rgb = false;
                     ShowBackground = true;
                     Rounding = true;
                     CornerRadius = 70;
@@ -203,7 +203,7 @@ public partial class FButton : FControlBase
             DrawBackground(e.Graphics);
             DrawText(e.Graphics);
 
-            _shapePath.ClearMarkers();
+            ShapePath.ClearMarkers();
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
     }
@@ -236,7 +236,7 @@ public partial class FButton : FControlBase
             _clickLocation = e.Location;
             _animationSize = 2;
 
-            _effectTickHandler = (sender, args) =>
+            _effectTickHandler = (_, _) =>
             {
                 _animationSize += 20;
                 Refresh();
@@ -257,21 +257,21 @@ public partial class FButton : FControlBase
 
     private void DrawBackground(Graphics formGraphics)
     {
-        float roundingValue = PrepareGeometry(Height);
+        var roundingValue = PrepareGeometry(Height);
 
-        using Bitmap borderLayer = RenderBorderLayer(roundingValue);
+        using var borderLayer = RenderBorderLayer(roundingValue);
         formGraphics.DrawImage(borderLayer, PointF.Empty);
 
         // Content layer with effects
         using Bitmap contentBitmap = new(Width, Height);
-        using (Graphics graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        using (var graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
         {
-            int offset = 1;
-            using GraphicsPath clipPath = DrawEngine.CreateRoundedPath(new(
-                _regionRect.X - offset,
-                _regionRect.Y - offset,
-                _regionRect.Width + offset * 2,
-                _regionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
+            const int offset = 1;
+            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
+                RegionRect.X - offset,
+                RegionRect.Y - offset,
+                RegionRect.Width + offset * 2,
+                RegionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
             using Region clipRegion = new(clipPath);
             graphics.Clip = clipRegion;
 
@@ -279,13 +279,13 @@ public partial class FButton : FControlBase
             {
                 if (UseGradientBackground)
                 {
-                    using LinearGradientBrush brush = new(_regionRect, GradientColor1, GradientColor2, 360);
-                    graphics.FillPath(brush, _shapePath);
+                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
+                    graphics.FillPath(brush, ShapePath);
                 }
                 else
                 {
                     using SolidBrush brush = new(BackgroundColor);
-                    graphics.FillPath(brush, _shapePath);
+                    graphics.FillPath(brush, ShapePath);
                 }
             }
 
@@ -298,14 +298,14 @@ public partial class FButton : FControlBase
     private void DrawText(Graphics graphics)
     {
         using SolidBrush brush = new(ForeColor);
-        graphics.DrawString(DisplayText, Font, brush, _regionRect, _textFormat);
+        graphics.DrawString(DisplayText, Font, brush, RegionRect, _textFormat);
     }
 
     private void DrawClickAnimation(Graphics graphics)
     {
-        int maxDimension = _controlSize.Width >= _controlSize.Height
-            ? _controlSize.Width * 2
-            : _controlSize.Height * 2;
+        var maxDimension = ControlSize.Width >= ControlSize.Height
+            ? ControlSize.Width * 2
+            : ControlSize.Height * 2;
 
         if (_animationSize < maxDimension)
         {
@@ -325,7 +325,7 @@ public partial class FButton : FControlBase
     private void DrawHoverOverlay(Graphics graphics)
     {
         using SolidBrush brush = new(Color.FromArgb(HoverEffectOpacity, HoverEffectColor));
-        graphics.FillPath(brush, _shapePath);
+        graphics.FillPath(brush, ShapePath);
     }
 
     #endregion
