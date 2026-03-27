@@ -36,7 +36,7 @@
 
 Each control supports fine-grained visual customization including background color, border, gradient fills, lighting/shadow effects, corner rounding, click animations, and an animated RGB color-cycling mode.
 
-![FC_UI Demo](resources/default_style.gif?raw=true)
+![FC_UI Demo](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/master/resources/default_style.gif)
 
 ---
 
@@ -99,7 +99,7 @@ Install-Package WinForms.FC_UI
 Or add directly to your `.csproj`:
 
 ```xml
-<PackageReference Include="WinForms.FC_UI" Version="3.1.1" />
+<PackageReference Include="WinForms.FC_UI" Version="3.1.2" />
 ```
 
 ---
@@ -236,15 +236,15 @@ WinForms.FC_UI/
 
 ### Default Style
 
-![Default Style](resources/default_style.gif?raw=true)
+![Default Style](https://github.com/0xLaileb/WinForms.FC_UI/blob/master/resources/default_style.gif?raw=true)
 
 ### RGB Mode (Global_RGB component)
 
-![RGB Mode](resources/rgb.gif?raw=true)
+![RGB Mode](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/rgb.gif)
 
 ### Random Style
 
-![Random Style](resources/random_style.gif?raw=true)
+![Random Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/random_style.gif)
 
 ---
 
