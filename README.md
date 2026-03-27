@@ -236,7 +236,7 @@ WinForms.FC_UI/
 
 ### Default Style
 
-![Default Style](https://github.com/0xLaileb/WinForms.FC_UI/blob/master/resources/default_style.gif?raw=true)
+![Default Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/default_style.gif)
 
 ### RGB Mode (Global_RGB component)
 
