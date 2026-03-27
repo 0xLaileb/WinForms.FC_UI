@@ -5,10 +5,29 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- NuGet package metadata -->
+    <PackageId>WinForms.FC_UI</PackageId>
+    <Version>3.1.1</Version>
+    <Authors>Daniil Laileb</Authors>
+    <Description>A custom WinForms UI control library with rich styling, RGB effects, gradients, lighting, and rounding for .NET 10 Windows Forms applications.</Description>
+    <PackageTags>winforms;ui;controls;rgb;gradient;lighting;button;checkbox;progressbar;custom-controls</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/0xLaileb/WinForms.FC_UI</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/0xLaileb/WinForms.FC_UI</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="WinForms.FC_UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\resources\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

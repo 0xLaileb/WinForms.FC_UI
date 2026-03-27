@@ -1,31 +1,108 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
+    tags: ["v*", "[0-9]*"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Restore, Build, Test
+  # ─────────────────────────────────────────────
   build:
-
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.0.x
-    - name: Restore dependencies
-      run: dotnet restore WinForms.FC_UI.slnx
-    - name: Build
-      run: dotnet build WinForms.FC_UI.slnx --no-restore
-    - name: Test
-      run: dotnet test WinForms.FC_UI.slnx --no-build --verbosity normal
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required by SourceLink
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore WinForms.FC_UI.slnx
+
+      - name: Build
+        run: dotnet build WinForms.FC_UI.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test WinForms.FC_UI.slnx --no-build --configuration Release --verbosity normal
+
+  # ─────────────────────────────────────────────
+  # Job 2: Pack (runs on master push AND on tags)
+  # ─────────────────────────────────────────────
+  pack:
+    runs-on: windows-latest
+    needs: build
+    if: github.event_name == 'push'  # Skip on PRs
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore WinForms.FC_UI.slnx
+
+      - name: Pack
+        run: dotnet pack src/WinForms.FC_UI.csproj --no-restore --configuration Release --output ./nupkg
+
+      - name: Upload .nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./nupkg/*.nupkg
+          if-no-files-found: error
+
+      - name: Upload .snupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-symbols
+          path: ./nupkg/*.snupkg
+          if-no-files-found: warn
+
+  # ─────────────────────────────────────────────
+  # Job 3: Publish to NuGet.org (tags only)
+  # ─────────────────────────────────────────────
+  publish:
+    runs-on: windows-latest
+    needs: pack
+    if: startsWith(github.ref, 'refs/tags/')  # Only on version tags
+    environment: publish                         # Optional: manual approval gate
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Download .nupkg artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./nupkg
+
+      - name: Download .snupkg artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-symbols
+          path: ./nupkg
+
+      - name: Push to NuGet.org
+        shell: pwsh
+        run: |
+          $pkg = Get-ChildItem ./nupkg/*.nupkg | Select-Object -First 1
+          dotnet nuget push $pkg.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

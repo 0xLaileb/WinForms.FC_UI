@@ -1,20 +1,14 @@
-<p align="center">
-  <img src="resources/logo.png?raw=true" alt="FC_UI Logo" width="140" />
-</p>
+# 👀 WinForms.FC_UI
 
-<h1 align="center">WinForms.FC_UI</h1>
+**A custom WinForms UI control library with rich styling, RGB effects, gradients, lighting, and rounding.**
 
-<p align="center">
-  <b>A custom WinForms UI control library with rich styling, RGB effects, gradients, lighting, and rounding.</b>
-</p>
-
-<p align="center">
-  <a href="https://github.com/0xLaileb/WinForms.FC_UI/releases"><img src="https://img.shields.io/github/v/release/0xLaileb/WinForms.FC_UI?color=%231DC8EE&label=Release&style=flat-square" alt="Release" /></a>
-  <a href="https://github.com/0xLaileb/WinForms.FC_UI/releases"><img src="https://img.shields.io/github/downloads/0xLaileb/WinForms.FC_UI/total?color=%231DC8EE&label=Downloads&logo=github&style=flat-square" alt="Downloads" /></a>
-  <a href="https://github.com/0xLaileb/WinForms.FC_UI/commits"><img src="https://img.shields.io/github/last-commit/0xLaileb/WinForms.FC_UI?color=%231DC8EE&label=Last%20Commit&style=flat-square" alt="Last Commit" /></a>
-  <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet" alt=".NET 10" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" />
-</p>
+[![Release](https://img.shields.io/github/v/release/0xLaileb/WinForms.FC_UI?color=%231DC8EE&label=Release&style=flat-square)](https://github.com/0xLaileb/WinForms.FC_UI/releases)
+[![NuGet](https://img.shields.io/nuget/v/WinForms.FC_UI?color=%231DC8EE&label=NuGet&style=flat-square&logo=nuget)](https://www.nuget.org/packages/WinForms.FC_UI)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/WinForms.FC_UI?color=%231DC8EE&label=Downloads&style=flat-square&logo=nuget)](https://www.nuget.org/packages/WinForms.FC_UI)
+[![Last Commit](https://img.shields.io/github/last-commit/0xLaileb/WinForms.FC_UI?color=%231DC8EE&label=Last%20Commit&style=flat-square)](https://github.com/0xLaileb/WinForms.FC_UI/commits)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet)
+![Windows](https://img.shields.io/badge/Platform-Windows-0078D4?style=flat-square&logo=windows)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
@@ -42,9 +36,7 @@
 
 Each control supports fine-grained visual customization including background color, border, gradient fills, lighting/shadow effects, corner rounding, click animations, and an animated RGB color-cycling mode.
 
-<p align="center">
-  <img src="resources/default_style.gif?raw=true" alt="FC_UI Demo" />
-</p>
+![FC_UI Demo](resources/default_style.gif?raw=true)
 
 ---
 
@@ -92,10 +84,22 @@ Each control supports fine-grained visual customization including background col
 
 ### 📦 Installation
 
-Clone the repository and add a project reference:
+#### NuGet Package Manager
+
+```
+dotnet add package WinForms.FC_UI
+```
+
+Or via the Package Manager Console in Visual Studio:
+
+```
+Install-Package WinForms.FC_UI
+```
+
+Or add directly to your `.csproj`:
 
 ```xml
-<ProjectReference Include="path\to\src\WinForms.FC_UI.csproj" />
+<PackageReference Include="WinForms.FC_UI" Version="3.1.1" />
 ```
 
 ---
@@ -268,13 +272,3 @@ Things to add or fix in future releases:
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## 📖 Star History
-
-<a href="https://www.star-history.com/#0xLaileb/WinForms.FC_UI&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=0xLaileb/WinForms.FC_UI&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=0xLaileb/WinForms.FC_UI&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=0xLaileb/WinForms.FC_UI&type=Date" />
- </picture>
-</a>
