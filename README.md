@@ -99,7 +99,7 @@ Install-Package WinForms.FC_UI
 Or add directly to your `.csproj`:
 
 ```xml
-<PackageReference Include="WinForms.FC_UI" Version="3.1.2" />
+<PackageReference Include="WinForms.FC_UI" Version="3.1.3" />
 ```
 
 ---
