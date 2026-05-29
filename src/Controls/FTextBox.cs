@@ -13,6 +13,7 @@ public partial class FTextBox : FControlBase
     private readonly StringFormat _textFormat = new();
     private Font? _cachedFont;
     private int _lastFontHeight = -1;
+    private bool _updatingDisplayText;
 
     public TextBox InnerTextBox { get; } = new();
 
@@ -34,7 +35,18 @@ public partial class FTextBox : FControlBase
         get => InnerTextBox.Text;
         set
         {
-            InnerTextBox.Text = value;
+            if (InnerTextBox.Text == value) return;
+
+            _updatingDisplayText = true;
+            try
+            {
+                InnerTextBox.Text = value;
+            }
+            finally
+            {
+                _updatingDisplayText = false;
+            }
+
             TextChanged();
         }
     }
@@ -144,7 +156,10 @@ public partial class FTextBox : FControlBase
         _textFormat.LineAlignment = StringAlignment.Center;
 
         InnerTextBox.Text = @"Text";
-        InnerTextBox.TextChanged += (_, _) => DisplayText = InnerTextBox.Text;
+        InnerTextBox.TextChanged += (_, _) =>
+        {
+            if (!_updatingDisplayText) TextChanged();
+        };
         UpdateTextBox(false);
         Controls.Add(InnerTextBox);
 

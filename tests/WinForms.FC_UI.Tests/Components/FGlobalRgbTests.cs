@@ -19,6 +19,7 @@ public class FGlobalRgbTests : IDisposable
     public void Dispose()
     {
         _globalRgb.Status = false;
+        _globalRgb.TimerInterval = 50;
         _container.Dispose();
     }
 
@@ -71,5 +72,16 @@ public class FGlobalRgbTests : IDisposable
 
         // Reset to default
         _globalRgb.TimerInterval = 50;
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void TimerInterval_InvalidValues_AreRejected(int value)
+    {
+        _globalRgb.TimerInterval = 100;
+        _globalRgb.TimerInterval = value;
+
+        Assert.Equal(100, _globalRgb.TimerInterval);
     }
 }

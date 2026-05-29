@@ -81,7 +81,10 @@ public partial class FButton : FControlBase
     public int ClickEffectInterval
     {
         get => _clickAnimationTimer.Interval;
-        set => _clickAnimationTimer.Interval = value;
+        set
+        {
+            if (value > 0) _clickAnimationTimer.Interval = value;
+        }
     }
 
     // --- Style ---

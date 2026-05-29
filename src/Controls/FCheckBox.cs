@@ -34,6 +34,7 @@ public partial class FCheckBox : FControlBase
         get;
         set
         {
+            if (field == value) return;
             field = value;
             CheckedChanged();
             Refresh();
@@ -112,7 +113,10 @@ public partial class FCheckBox : FControlBase
     public int ClickEffectInterval
     {
         get => _clickAnimationTimer.Interval;
-        set => _clickAnimationTimer.Interval = value;
+        set
+        {
+            if (value > 0) _clickAnimationTimer.Interval = value;
+        }
     }
 
     // --- Style ---
@@ -241,6 +245,8 @@ public partial class FCheckBox : FControlBase
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
+        if (e.Button != MouseButtons.Left) return;
+
         Checked = !Checked;
 
         _clickAnimationTimer.Stop();
@@ -250,22 +256,19 @@ public partial class FCheckBox : FControlBase
             _effectTickHandler = null;
         }
 
-        if (e.Button == MouseButtons.Left)
-        {
-            _animationSize = _checkboxSize.Width;
+        _animationSize = _checkboxSize.Width;
 
-            if (Checked)
+        if (Checked)
+        {
+            _effectTickHandler = (_, _) =>
             {
-                _effectTickHandler = (_, _) =>
-                {
-                    _animationSize += 1;
-                    Refresh();
-                };
-                _clickAnimationTimer.Tick += _effectTickHandler;
-                _clickAnimationTimer.Start();
-            }
-            else Refresh();
+                _animationSize += 1;
+                Refresh();
+            };
+            _clickAnimationTimer.Tick += _effectTickHandler;
+            _clickAnimationTimer.Start();
         }
+        else Refresh();
     }
 
     protected override void OnMouseEnter(EventArgs e)

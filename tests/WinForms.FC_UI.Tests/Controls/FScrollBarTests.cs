@@ -55,6 +55,23 @@ public class FScrollBarTests : IDisposable
     }
 
     [Fact]
+    public void Value_AboveMaximum_IsClamped()
+    {
+        _scrollBar.Value = 101;
+
+        Assert.Equal(100, _scrollBar.Value);
+    }
+
+    [Fact]
+    public void Value_BelowMinimum_IsClamped()
+    {
+        _scrollBar.Minimum = 10;
+        _scrollBar.Value = 0;
+
+        Assert.Equal(10, _scrollBar.Value);
+    }
+
+    [Fact]
     public void Value_Changed_RaisesValueChangedEvent()
     {
         var eventFired = false;
@@ -100,6 +117,14 @@ public class FScrollBarTests : IDisposable
         _scrollBar.Minimum = 10;
 
         Assert.Equal(10, _scrollBar.Minimum);
+    }
+
+    [Fact]
+    public void Minimum_AboveCurrentValue_ClampsValueToMinimum()
+    {
+        _scrollBar.Minimum = 10;
+
+        Assert.Equal(10, _scrollBar.Value);
     }
 
     [Theory]

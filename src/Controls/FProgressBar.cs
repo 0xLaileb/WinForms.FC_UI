@@ -45,6 +45,7 @@ public partial class FProgressBar : FControlBase
             if (value < Maximum)
             {
                 field = value;
+                if (Value < field) Value = field;
                 Refresh();
             }
         }
@@ -61,6 +62,7 @@ public partial class FProgressBar : FControlBase
             if (value > Minimum)
             {
                 field = value;
+                if (Value > field) Value = field;
                 Refresh();
             }
         }
@@ -317,16 +319,18 @@ public partial class FProgressBar : FControlBase
     private void DrawText(Graphics graphics)
     {
         using SolidBrush brush = new(ForeColor);
-        var percent = Maximum != 0 ? (int)Math.Round((double)Value / Maximum * 100) : 0;
+        var range = Maximum - Minimum;
+        var percent = range > 0 ? (int)Math.Round((double)(Value - Minimum) / range * 100) : 0;
         graphics.DrawString(
             $"{percent}%", Font, brush, RegionRect, _textFormat);
     }
 
     private void DrawProgressFill(Graphics graphics, float roundingValue)
     {
-        if (Value == 0) return;
+        var range = Maximum - Minimum;
+        if (range <= 0 || Value <= Minimum) return;
 
-        var ratio = Maximum != 0 ? (double)Value / Maximum : 0;
+        var ratio = (double)(Value - Minimum) / range;
         _drawnValueWidth = Convert.ToInt32(ShapePath.GetBounds().Width * ratio);
         _valueRect = RegionRect with { Width = _drawnValueWidth };
 
@@ -346,7 +350,7 @@ public partial class FProgressBar : FControlBase
         {
             using LinearGradientBrush brush = new(_valueRect,
                 Color.FromArgb(FillOpacity, GetRgbOrColor(GradientFillColor1)),
-                Color.FromArgb(FillOpacity, Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2),
+                Color.FromArgb(FillOpacity, Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2),
                 360);
             graphics.FillPath(brush, valuePath);
         }

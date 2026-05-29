@@ -12,6 +12,7 @@ public partial class FRichTextBox : FControlBase
 
     private readonly StringFormat _textFormat = new();
     private readonly RichTextBox _innerRichTextBox = new();
+    private bool _updatingDisplayText;
 
     #endregion
 
@@ -31,7 +32,18 @@ public partial class FRichTextBox : FControlBase
         get => _innerRichTextBox.Text;
         set
         {
-            _innerRichTextBox.Text = value;
+            if (_innerRichTextBox.Text == value) return;
+
+            _updatingDisplayText = true;
+            try
+            {
+                _innerRichTextBox.Text = value;
+            }
+            finally
+            {
+                _updatingDisplayText = false;
+            }
+
             TextChanged();
         }
     }
@@ -112,6 +124,10 @@ public partial class FRichTextBox : FControlBase
         _textFormat.LineAlignment = StringAlignment.Center;
 
         _innerRichTextBox.Text = @"Text";
+        _innerRichTextBox.TextChanged += (_, _) =>
+        {
+            if (!_updatingDisplayText) TextChanged();
+        };
         UpdateRichTextBox(false);
         Controls.Add(_innerRichTextBox);
 

@@ -78,9 +78,11 @@ Each control supports fine-grained visual customization including background col
 
 ### 📌 Prerequisites
 
-- **SDK:** [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
+- **SDK:** [.NET 10 SDK](https://dotnet.microsoft.com/download) 10.0.300 or later
 - **Language:** C# 14
 - **Platform:** Windows (WinForms)
+
+The repository includes `global.json` and NuGet lock files so local restore uses the same SDK feature band and dependency graph as CI.
 
 ### 📦 Installation
 
@@ -112,23 +114,23 @@ using FC_UI.Controls;
 // Create and configure an FButton
 var button = new FButton
 {
-    FButtonStyle = FButton.Style.Default,
-    TextButton = "Click me",
-    ColorBackground = Color.FromArgb(37, 52, 68),
-    ColorBackground_Pen = Color.FromArgb(29, 200, 238),
+    ControlStyle = FControlBase.ControlStyleMode.Default,
+    DisplayText = "Click me",
+    BackgroundColor = Color.FromArgb(37, 52, 68),
+    BorderColor = Color.FromArgb(29, 200, 238),
     Rounding = true,
-    RoundingInt = 70,
-    Effect_1 = true,
-    BackgroundPen = true,
-    Background_WidthPen = 4F
+    CornerRadius = 70,
+    EnableClickEffect = true,
+    ShowBorder = true,
+    BorderWidth = 4F
 };
 this.Controls.Add(button);
 
 // Enable RGB mode
-button.RGB = true;
+button.Rgb = true;
 
 // Or use the Random style for a surprise
-button.FButtonStyle = FButton.Style.Random;
+button.ControlStyle = FControlBase.ControlStyleMode.Random;
 ```
 
 👉 See the full working demo in [`examples/WinForms.FC_UI.Example/`](examples/WinForms.FC_UI.Example/).
@@ -156,18 +158,18 @@ button.FButtonStyle = FButton.Style.Random;
 
 | Property | Type | Description |
 |---|---|---|
-| `Background` | `bool` | Enable/disable background fill |
-| `ColorBackground` | `Color` | Background color |
+| `ShowBackground` | `bool` | Enable/disable background fill |
+| `BackgroundColor` | `Color` | Background color |
 | `Rounding` | `bool` | Enable/disable corner rounding |
-| `RoundingInt` | `int` | Rounding percentage (0–100) |
-| `RGB` | `bool` | Enable/disable RGB color cycling mode |
-| `BackgroundPen` | `bool` | Enable/disable border |
-| `Background_WidthPen` | `float` | Border width |
-| `ColorBackground_Pen` | `Color` | Border color |
+| `CornerRadius` | `int` | Rounding percentage (0–100) |
+| `Rgb` | `bool` | Enable/disable RGB color cycling mode |
+| `ShowBorder` | `bool` | Enable/disable border |
+| `BorderWidth` | `float` | Border width |
+| `BorderColor` | `Color` | Border color |
 | `Lighting` | `bool` | Enable/disable lighting/shadow effect |
-| `ColorLighting` | `Color` | Lighting/shadow color |
-| `LinearGradient_Background` | `bool` | Enable/disable background gradient |
-| `LinearGradientPen` | `bool` | Enable/disable border gradient |
+| `LightingColor` | `Color` | Lighting/shadow color |
+| `UseGradientBackground` | `bool` | Enable/disable background gradient |
+| `UseGradientBorder` | `bool` | Enable/disable border gradient |
 | `SmoothingMode` | `SmoothingMode` | Graphics smoothing mode |
 | `TextRenderingHint` | `TextRenderingHint` | Text rendering quality |
 
@@ -182,10 +184,12 @@ button.FButtonStyle = FButton.Style.Random;
 ## 🧪 Running Tests
 
 ```bash
-dotnet test
+dotnet restore WinForms.FC_UI.slnx --locked-mode
+dotnet build WinForms.FC_UI.slnx --no-restore --configuration Release
+dotnet test WinForms.FC_UI.slnx --no-build --configuration Release --verbosity normal
 ```
 
-Tests are located in [`tests/WinForms.FC_UI.Tests/`](tests/WinForms.FC_UI.Tests/) and use **xUnit**. They cover engine utilities (HSV-to-RGB conversion, rounded rectangle generation, random helpers), and control property validation (defaults, bounds checking, events).
+Tests are located in [`tests/WinForms.FC_UI.Tests/`](tests/WinForms.FC_UI.Tests/) and use **xUnit**. They cover engine utilities (HSV-to-RGB conversion, rounded rectangle generation, random helpers), control property validation (defaults, bounds checking, events), and basic render smoke checks.
 
 ---
 

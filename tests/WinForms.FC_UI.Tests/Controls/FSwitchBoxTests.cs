@@ -59,6 +59,17 @@ public class FSwitchBoxTests : IDisposable
     }
 
     [Fact]
+    public void Checked_SetSameValue_DoesNotRaiseCheckedChanged()
+    {
+        var eventFired = false;
+        _switchBox.CheckedChanged += () => eventFired = true;
+
+        _switchBox.Checked = false;
+
+        Assert.False(eventFired);
+    }
+
+    [Fact]
     public void Checked_SetTrue_ReturnsTrue()
     {
         _switchBox.Checked = true;
@@ -109,5 +120,21 @@ public class FSwitchBoxTests : IDisposable
     public void Tag_IsSetToFC_UI()
     {
         Assert.Equal("FC_UI", _switchBox.Tag);
+    }
+
+    [Fact]
+    public void RightClick_DoesNotToggleChecked()
+    {
+        using var switchBox = new ClickableFSwitchBox();
+
+        switchBox.InvokeMouseClick(MouseButtons.Right);
+
+        Assert.False(switchBox.Checked);
+    }
+
+    private sealed class ClickableFSwitchBox : FSwitchBox
+    {
+        public void InvokeMouseClick(MouseButtons button) =>
+            OnMouseClick(new MouseEventArgs(button, 1, 0, 0, 0));
     }
 }

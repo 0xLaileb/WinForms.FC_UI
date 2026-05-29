@@ -45,7 +45,10 @@ public abstract class FControlBase : UserControl
     public int RgbUpdateInterval
     {
         get => _rgbTimer.Interval;
-        set => _rgbTimer.Interval = value;
+        set
+        {
+            if (value > 0) _rgbTimer.Interval = value;
+        }
     }
 
     [Description("Enable/Disable RGB mode")]
@@ -74,8 +77,8 @@ public abstract class FControlBase : UserControl
             {
                 if (DrawEngine.GlobalRgbTimer.Enabled)
                 {
-                    // HsvToRgb already uses s_globalHue when GlobalRgbTimer is active;
-                    // subscribe for repaints only.
+                    // GetRgbOrColor reads the global hue while the shared timer is active;
+                    // controls only need a repaint subscription here.
                     _globalRgbTickHandler = (_, _) => Refresh();
                     DrawEngine.GlobalRgbTimer.Tick += _globalRgbTickHandler;
                 }
@@ -165,6 +168,7 @@ public abstract class FControlBase : UserControl
         get;
         set
         {
+            if (value < 0) return;
             field = value;
             OnSizeChanged(EventArgs.Empty);
             Refresh();
@@ -211,7 +215,14 @@ public abstract class FControlBase : UserControl
     public int LightingAlpha
     {
         get;
-        set { field = value; Refresh(); }
+        set
+        {
+            if (value is >= 0 and <= 255)
+            {
+                field = value;
+                Refresh();
+            }
+        }
     }
 
     [Category("Lighting")]
@@ -222,6 +233,7 @@ public abstract class FControlBase : UserControl
         get;
         set
         {
+            if (value < 0) return;
             field = value;
             OnSizeChanged(EventArgs.Empty);
             Refresh();
@@ -386,7 +398,7 @@ public abstract class FControlBase : UserControl
     /// Returns the current RGB color or the provided fallback color.
     /// </summary>
     protected Color GetRgbOrColor(Color fallback) =>
-        Rgb ? DrawEngine.HsvToRgb(Hue, 1f, 1f) : fallback;
+        Rgb ? DrawEngine.GetRgbColor(Hue) : fallback;
 
     /// <summary>
     /// Prepares geometry: updates shape path, creates region.

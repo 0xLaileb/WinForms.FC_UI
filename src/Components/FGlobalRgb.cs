@@ -28,6 +28,9 @@ public partial class FGlobalRgb : Component
     public int TimerInterval
     {
         get => DrawEngine.GlobalRgbTimer.Interval;
-        set => DrawEngine.GlobalRgbTimer.Interval = value;
+        set
+        {
+            if (value > 0) DrawEngine.GlobalRgbTimer.Interval = value;
+        }
     }
 }

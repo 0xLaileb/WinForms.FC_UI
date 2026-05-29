@@ -113,6 +113,14 @@ public class FProgressBarTests : IDisposable
         Assert.Equal(10, _progressBar.Minimum);
     }
 
+    [Fact]
+    public void Minimum_AboveCurrentValue_ClampsValueToMinimum()
+    {
+        _progressBar.Minimum = 10;
+
+        Assert.Equal(10, _progressBar.Value);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(50)]

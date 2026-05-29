@@ -59,6 +59,17 @@ public class FCheckBoxTests : IDisposable
     }
 
     [Fact]
+    public void Checked_SetSameValue_DoesNotRaiseCheckedChanged()
+    {
+        var eventFired = false;
+        _checkBox.CheckedChanged += () => eventFired = true;
+
+        _checkBox.Checked = false;
+
+        Assert.False(eventFired);
+    }
+
+    [Fact]
     public void Checked_SetTrue_ReturnsTrue()
     {
         _checkBox.Checked = true;
@@ -118,5 +129,21 @@ public class FCheckBoxTests : IDisposable
     public void Tag_IsSetToFC_UI()
     {
         Assert.Equal("FC_UI", _checkBox.Tag);
+    }
+
+    [Fact]
+    public void RightClick_DoesNotToggleChecked()
+    {
+        using var checkBox = new ClickableFCheckBox();
+
+        checkBox.InvokeMouseClick(MouseButtons.Right);
+
+        Assert.False(checkBox.Checked);
+    }
+
+    private sealed class ClickableFCheckBox : FCheckBox
+    {
+        public void InvokeMouseClick(MouseButtons button) =>
+            OnMouseClick(new MouseEventArgs(button, 1, 0, 0, 0));
     }
 }

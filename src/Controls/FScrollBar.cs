@@ -29,8 +29,9 @@ public partial class FScrollBar : FControlBase
         get;
         set
         {
-            if (field == value) return;
-            field = value;
+            var clampedValue = Math.Clamp(value, Minimum, Maximum);
+            if (field == clampedValue) return;
+            field = clampedValue;
             Refresh();
             OnScroll();
         }
@@ -84,7 +85,7 @@ public partial class FScrollBar : FControlBase
             if (value > Minimum)
             {
                 field = value;
-                Value = 0;
+                if (Value > field) Value = field;
                 Refresh();
             }
         }
@@ -101,7 +102,7 @@ public partial class FScrollBar : FControlBase
             if (value < Maximum)
             {
                 field = value;
-                Value = 0;
+                if (Value < field) Value = field;
                 Refresh();
             }
         }
@@ -304,6 +305,8 @@ public partial class FScrollBar : FControlBase
     private void HandleMouseScroll(MouseEventArgs e)
     {
         var newValue = Value;
+        var valueRange = Maximum - Minimum;
+        if (valueRange <= 0) return;
 
         switch (Orientation)
         {
@@ -313,7 +316,7 @@ public partial class FScrollBar : FControlBase
                 else
                 {
                     var range = RegionRect.Height - ThumbSize;
-                    if (range > 0) newValue = Maximum * (e.Y - ThumbSize / 2) / range;
+                    if (range > 0) newValue = Minimum + valueRange * (e.Y - ThumbSize / 2) / range;
                 }
                 break;
             case Orientation.Horizontal:
@@ -322,11 +325,11 @@ public partial class FScrollBar : FControlBase
                 else
                 {
                     var range = RegionRect.Width - ThumbSize;
-                    if (range > 0) newValue = Maximum * (e.X - ThumbSize / 2) / range;
+                    if (range > 0) newValue = Minimum + valueRange * (e.X - ThumbSize / 2) / range;
                 }
                 break;
         }
-        Value = Math.Max(0, Math.Min(Maximum, newValue));
+        Value = Math.Clamp(newValue, Minimum, Maximum);
     }
 
     #endregion
@@ -374,8 +377,10 @@ public partial class FScrollBar : FControlBase
 
     private void DrawThumb(Graphics graphics, float roundingValue)
     {
-        if (Maximum <= 0) return;
+        var valueRange = Maximum - Minimum;
+        if (valueRange <= 0) return;
         _thumbRect = new Rectangle(2, 2, RegionRect.Width, ThumbSize);
+        var valueOffset = Value - Minimum;
 
         switch (Orientation)
         {
@@ -384,7 +389,7 @@ public partial class FScrollBar : FControlBase
                 var vRange = RegionRect.Height - ThumbSize;
                 _thumbRect = new Rectangle(
                     RegionRect.X,
-                    RegionRect.Y + (vRange > 0 ? Value * vRange / Maximum : 0),
+                    RegionRect.Y + (vRange > 0 ? valueOffset * vRange / valueRange : 0),
                     RegionRect.Width,
                     ThumbSize);
                 break;
@@ -393,7 +398,7 @@ public partial class FScrollBar : FControlBase
             {
                 var hRange = RegionRect.Width - ThumbSize;
                 _thumbRect = new Rectangle(
-                    RegionRect.X + (hRange > 0 ? Value * hRange / Maximum : 0),
+                    RegionRect.X + (hRange > 0 ? valueOffset * hRange / valueRange : 0),
                     RegionRect.Y,
                     ThumbSize,
                     RegionRect.Height);
@@ -414,7 +419,7 @@ public partial class FScrollBar : FControlBase
         {
             using LinearGradientBrush brush = new(RegionRect,
                 Color.FromArgb(ThumbOpacity, GetRgbOrColor(GradientFillColor1)),
-                Color.FromArgb(ThumbOpacity, Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2),
+                Color.FromArgb(ThumbOpacity, Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2),
                 360);
             graphics.FillPath(brush, thumbPath);
         }

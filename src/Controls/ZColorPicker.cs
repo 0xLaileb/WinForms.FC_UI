@@ -161,6 +161,8 @@ public partial class ZColorPicker : UserControl
     private Color GetPixelColorFromWheel(float x, float y, float brightness, float radius)
     {
         var distance = MathF.Sqrt(x * x + y * y);
+        if (distance <= float.Epsilon) return DrawEngine.HsvToRgb(0, 0f, brightness);
+
         var saturation = distance / radius;
         if (saturation > 1) return Color.Transparent;
 
@@ -196,7 +198,7 @@ public partial class ZColorPicker : UserControl
         if (color == Color.Transparent) return Color.Empty;
 
         label1.Text = $@"RGB: {color.R}, {color.G}, {color.B}";
-        label2.Text = $@"HEX: #{color.ToArgb():X}";
+        label2.Text = $@"HEX: #{color.R:X2}{color.G:X2}{color.B:X2}";
         _cursorPosition = new PointF(relX + centerX, relY + centerY);
         pictureBox2.BackColor = color;
         if (pictureBox3.Tag is BrightnessBox brightnessBox) brightnessBox.Color = color;

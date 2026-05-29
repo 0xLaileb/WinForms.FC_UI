@@ -24,6 +24,7 @@ public partial class FSwitchBox : FControlBase
         get;
         set
         {
+            if (field == value) return;
             field = value;
             CheckedChanged();
             Refresh();
@@ -180,6 +181,8 @@ public partial class FSwitchBox : FControlBase
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
+        if (e.Button != MouseButtons.Left) return;
+
         Checked = !Checked;
         Refresh();
     }
@@ -255,7 +258,7 @@ public partial class FSwitchBox : FControlBase
             {
                 using LinearGradientBrush brush = new(RegionRect,
                     GetRgbOrColor(GradientFillColor1),
-                    Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2,
+                    Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2,
                     360);
                 graphics.FillEllipse(brush, toggleRect);
             }
@@ -280,7 +283,7 @@ public partial class FSwitchBox : FControlBase
             if (UseGradientFill)
             {
                 var c1 = DimColor(GetRgbOrColor(GradientFillColor1));
-                var c2 = DimColor(Rgb ? DrawEngine.HsvToRgb(Hue + 20, 1f, 1f) : GradientFillColor2);
+                var c2 = DimColor(Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2);
                 using LinearGradientBrush brush = new(RegionRect, c1, c2, 360);
                 graphics.FillEllipse(brush, toggleRect);
             }

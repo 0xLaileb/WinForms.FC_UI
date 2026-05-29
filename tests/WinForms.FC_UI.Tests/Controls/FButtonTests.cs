@@ -160,6 +160,17 @@ public class FButtonTests : IDisposable
         Assert.Equal(100, _button.HoverEffectOpacity);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ClickEffectInterval_InvalidValues_AreRejected(int value)
+    {
+        _button.ClickEffectInterval = 10;
+        _button.ClickEffectInterval = value;
+
+        Assert.Equal(10, _button.ClickEffectInterval);
+    }
+
     #endregion
 
     #region Property Setter Tests

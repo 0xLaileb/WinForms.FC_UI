@@ -105,6 +105,35 @@ public class DrawEngineTests
         Assert.Equal(255, result.A);
     }
 
+    [Fact]
+    public void HsvToRgb_GlobalTimerEnabled_UsesProvidedHue()
+    {
+        DrawEngine.SetGlobalRgbTimer(true);
+
+        try
+        {
+            var result = DrawEngine.HsvToRgb(120, 1f, 1f);
+
+            Assert.Equal(0, result.R);
+            Assert.Equal(255, result.G);
+            Assert.Equal(0, result.B);
+        }
+        finally
+        {
+            DrawEngine.SetGlobalRgbTimer(false);
+        }
+    }
+
+    [Fact]
+    public void HsvToRgb_OutOfRangeInputs_AreClamped()
+    {
+        var result = DrawEngine.HsvToRgb(-120, 2f, 2f);
+
+        Assert.InRange(result.R, 0, 255);
+        Assert.InRange(result.G, 0, 255);
+        Assert.InRange(result.B, 0, 255);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(60)]
@@ -179,6 +208,21 @@ public class DrawEngineTests
 
         Assert.NotNull(path);
         Assert.True(path.PointCount > 0);
+    }
+
+    #endregion
+
+    #region DrawBlurredShadow Tests
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void DrawBlurredShadow_InvalidPenWidth_DoesNotThrow(int penWidth)
+    {
+        using Bitmap bitmap = new(20, 20);
+        using var graphics = Graphics.FromImage(bitmap);
+
+        DrawEngine.DrawBlurredShadow(graphics, Color.Red, new Point(0, 0), new Point(10, 10), 100, penWidth);
     }
 
     #endregion
