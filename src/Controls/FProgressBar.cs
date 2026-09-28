@@ -29,6 +29,7 @@ public partial class FProgressBar : FControlBase
             if (value <= Maximum && value >= Minimum)
             {
                 field = value;
+                // Synchronous repaint keeps progress visible when Value is updated from a busy UI-thread loop.
                 Refresh();
             }
         }
@@ -46,7 +47,7 @@ public partial class FProgressBar : FControlBase
             {
                 field = value;
                 if (Value < field) Value = field;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -63,7 +64,7 @@ public partial class FProgressBar : FControlBase
             {
                 field = value;
                 if (Value > field) Value = field;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -74,7 +75,7 @@ public partial class FProgressBar : FControlBase
     public int StartDrawingValue
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("FProgressBar")]
@@ -83,7 +84,7 @@ public partial class FProgressBar : FControlBase
     public bool ProgressText
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("FProgressBar")]
@@ -92,7 +93,7 @@ public partial class FProgressBar : FControlBase
     public Color FillColor
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("Value")]
@@ -106,7 +107,7 @@ public partial class FProgressBar : FControlBase
             if (value is >= 5 and <= 255)
             {
                 field = value;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -119,7 +120,7 @@ public partial class FProgressBar : FControlBase
     public bool UseGradientFill
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -128,7 +129,7 @@ public partial class FProgressBar : FControlBase
     public Color GradientFillColor1
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -137,7 +138,7 @@ public partial class FProgressBar : FControlBase
     public Color GradientFillColor2
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Style ---
@@ -228,7 +229,7 @@ public partial class FProgressBar : FControlBase
                     FillOpacity = HelpEngine.RandomInt(5, 255);
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -244,7 +245,7 @@ public partial class FProgressBar : FControlBase
         _textFormat.Alignment = StringAlignment.Center;
         _textFormat.LineAlignment = StringAlignment.Center;
 
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
@@ -265,12 +266,9 @@ public partial class FProgressBar : FControlBase
             DrawBackground(e.Graphics);
             if (ProgressText) DrawText(e.Graphics);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-    }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
 
-    protected override void OnSizeChanged(EventArgs e)
-    {
-        RecalculateRegion();
+        base.OnPaint(e);
     }
 
     #endregion

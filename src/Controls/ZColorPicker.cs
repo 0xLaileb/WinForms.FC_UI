@@ -60,6 +60,8 @@ public partial class ZColorPicker : UserControl
             DrawWheel(wheel.Width / 2f, g);
         }
         pictureBox1.Image = wheel;
+        // PictureBox does not dispose its Image.
+        Disposed += (_, _) => wheel.Dispose();
         _cursorPosition = new PointF(pictureBox1.Height / 2f, pictureBox1.Height / 2f);
     }
 
@@ -201,7 +203,9 @@ public partial class ZColorPicker : UserControl
         label2.Text = $@"HEX: #{color.R:X2}{color.G:X2}{color.B:X2}";
         _cursorPosition = new PointF(relX + centerX, relY + centerY);
         pictureBox2.BackColor = color;
-        if (pictureBox3.Tag is BrightnessBox brightnessBox) brightnessBox.Color = color;
+        // The brightness bar shows the full-brightness hue; using the dimmed pick would darken it on every drag.
+        if (pictureBox3.Tag is BrightnessBox brightnessBox)
+            brightnessBox.Color = GetPixelColorFromWheel(relX, relY, 1f, centerX);
         pictureBox1.Tag = new PointF(x, y);
         pictureBox1.Invalidate();
         pictureBox2.Invalidate();

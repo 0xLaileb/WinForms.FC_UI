@@ -107,7 +107,7 @@ public partial class FRichTextBox : FControlBase
                     }
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -131,7 +131,7 @@ public partial class FRichTextBox : FControlBase
         UpdateRichTextBox(false);
         Controls.Add(_innerRichTextBox);
 
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
@@ -168,12 +168,9 @@ public partial class FRichTextBox : FControlBase
             DrawBackground(e.Graphics);
             UpdateRichTextBox(true);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-    }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
 
-    protected override void OnSizeChanged(EventArgs e)
-    {
-        RecalculateRegion();
+        base.OnPaint(e);
     }
 
     #endregion

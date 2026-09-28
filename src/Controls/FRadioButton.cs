@@ -14,7 +14,8 @@ public partial class FRadioButton : FControlBase
     private int _animationSize;
     private bool _isMouseHovered;
     private Size _radioSize;
-    private EventHandler? _effectTickHandler;
+    private const int ClickAnimationMaxSize = 40;
+    private const int FixedHeight = 45;
 
     #endregion
 
@@ -37,7 +38,7 @@ public partial class FRadioButton : FControlBase
             if (field == value) return;
             field = value;
             CheckedChanged();
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -47,7 +48,7 @@ public partial class FRadioButton : FControlBase
     public int SizeChecked
     {
         get;
-        set { if (value % 2 == 0) { field = value; Refresh(); } }
+        set { if (value % 2 == 0) { field = value; Invalidate(true); } }
     }
 
     [Category("FRadioButton")]
@@ -56,7 +57,7 @@ public partial class FRadioButton : FControlBase
     public string DisplayText
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     } = string.Empty;
 
     [Category("FRadioButton")]
@@ -65,7 +66,7 @@ public partial class FRadioButton : FControlBase
     public Color ColorChecked
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Gradient Fill ---
@@ -76,7 +77,7 @@ public partial class FRadioButton : FControlBase
     public bool UseGradientFill
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -85,7 +86,7 @@ public partial class FRadioButton : FControlBase
     public Color GradientFillColor1
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -94,7 +95,7 @@ public partial class FRadioButton : FControlBase
     public Color GradientFillColor2
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Effects ---
@@ -105,7 +106,7 @@ public partial class FRadioButton : FControlBase
     public Color ClickEffectColor
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("Effects")]
@@ -232,7 +233,7 @@ public partial class FRadioButton : FControlBase
                     }
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -244,7 +245,8 @@ public partial class FRadioButton : FControlBase
     {
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
-        OnSizeChanged(EventArgs.Empty);
+        _clickAnimationTimer.Tick += (_, _) => StepClickAnimation();
+        UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
@@ -279,33 +281,25 @@ public partial class FRadioButton : FControlBase
             DrawBackground(e.Graphics);
             DrawText(e.Graphics);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+
+        base.OnPaint(e);
     }
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
-        if (e.Button != MouseButtons.Left) return;
+        if (e.Button == MouseButtons.Left) ToggleChecked();
+        base.OnMouseClick(e);
+    }
 
+    private void ToggleChecked()
+    {
         Checked = !Checked;
 
         _clickAnimationTimer.Stop();
-        if (_effectTickHandler is not null)
-        {
-            _clickAnimationTimer.Tick -= _effectTickHandler;
-            _effectTickHandler = null;
-        }
 
         _animationSize = _radioSize.Width;
-        if (Checked)
-        {
-            _effectTickHandler = (_, _) =>
-            {
-                _animationSize += 1;
-                Refresh();
-            };
-            _clickAnimationTimer.Tick += _effectTickHandler;
-            _clickAnimationTimer.Start();
-        }
+        if (Checked) _clickAnimationTimer.Start();
         else Refresh();
     }
 
@@ -313,6 +307,7 @@ public partial class FRadioButton : FControlBase
     {
         _isMouseHovered = true;
         Refresh();
+        base.OnMouseEnter(e);
     }
 
     protected override void OnMouseLeave(EventArgs e)
@@ -321,13 +316,35 @@ public partial class FRadioButton : FControlBase
         _isMouseHovered = false;
         _animationSize = 0;
         Refresh();
+        base.OnMouseLeave(e);
     }
 
-    protected override void OnSizeChanged(EventArgs e)
+    protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
     {
-        Size = Size with { Height = 45 };
+        // The height is fixed; clamping here avoids a nested resize (and duplicate SizeChanged events).
+        base.SetBoundsCore(x, y, width, FixedHeight, specified);
+    }
+
+    protected override void UpdateGeometry()
+    {
         _radioSize = new Size(21, 21);
         RegionRect = new Rectangle(15, Size.Height / 2 - 12, _radioSize.Width, _radioSize.Height);
+    }
+
+    #endregion
+
+    #region Animation
+
+    internal bool IsClickAnimationRunning => _clickAnimationTimer.Enabled;
+
+    internal void StepClickAnimation()
+    {
+        _animationSize += 1;
+
+        // Stop once the ripple reaches its final size instead of repainting forever.
+        if (_animationSize >= ClickAnimationMaxSize) _clickAnimationTimer.Stop();
+
+        Refresh();
     }
 
     #endregion
@@ -434,8 +451,7 @@ public partial class FRadioButton : FControlBase
 
     private void DrawClickAnimation(Graphics graphics)
     {
-        const int maxSize = 40;
-        if (_animationSize < maxSize)
+        if (_animationSize < ClickAnimationMaxSize)
         {
             Rectangle circleRect = new(
                 15 + 25 / 2 - _animationSize / 2 - 2,

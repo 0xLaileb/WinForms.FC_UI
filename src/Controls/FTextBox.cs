@@ -139,7 +139,7 @@ public partial class FTextBox : FControlBase
                     }
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -163,7 +163,7 @@ public partial class FTextBox : FControlBase
         UpdateTextBox(false);
         Controls.Add(InnerTextBox);
 
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
@@ -210,12 +210,9 @@ public partial class FTextBox : FControlBase
             DrawBackground(e.Graphics);
             UpdateTextBox(true);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-    }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
 
-    protected override void OnSizeChanged(EventArgs e)
-    {
-        RecalculateRegion();
+        base.OnPaint(e);
     }
 
     #endregion

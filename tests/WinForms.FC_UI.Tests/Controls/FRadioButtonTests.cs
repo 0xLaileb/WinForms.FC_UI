@@ -43,6 +43,41 @@ public class FRadioButtonTests : IDisposable
         Assert.False(radioButton.Checked);
     }
 
+    [Fact]
+    public void StepClickAnimation_RippleReachesMaxSize_StopsTimer()
+    {
+        using var radioButton = new ClickableFRadioButton();
+        radioButton.InvokeMouseClick(MouseButtons.Left);
+        Assert.True(radioButton.IsClickAnimationRunning);
+
+        for (var i = 0; i < 100 && radioButton.IsClickAnimationRunning; i++) radioButton.StepClickAnimation();
+
+        Assert.False(radioButton.IsClickAnimationRunning);
+    }
+
+    [Fact]
+    public void LeftClick_CheckedControl_UnchecksWithoutAnimation()
+    {
+        using var radioButton = new ClickableFRadioButton { Checked = true };
+
+        radioButton.InvokeMouseClick(MouseButtons.Left);
+
+        Assert.False(radioButton.Checked);
+        Assert.False(radioButton.IsClickAnimationRunning);
+    }
+
+    [Fact]
+    public void Height_SetDifferentValue_StaysFixedAndRaisesSizeChangedOnce()
+    {
+        var sizeChangedCount = 0;
+        _radioButton.SizeChanged += (_, _) => sizeChangedCount++;
+
+        _radioButton.Size = new Size(200, 100);
+
+        Assert.Equal(new Size(200, 45), _radioButton.Size);
+        Assert.Equal(1, sizeChangedCount);
+    }
+
     private sealed class ClickableFRadioButton : FRadioButton
     {
         public void InvokeMouseClick(MouseButtons button) =>

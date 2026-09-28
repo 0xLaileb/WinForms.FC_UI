@@ -84,7 +84,7 @@ public partial class FGroupBox : FControlBase
                     }
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -100,7 +100,7 @@ public partial class FGroupBox : FControlBase
         _textFormat.Alignment = StringAlignment.Center;
         _textFormat.LineAlignment = StringAlignment.Center;
 
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
@@ -120,12 +120,9 @@ public partial class FGroupBox : FControlBase
             ApplyGraphicsSettings(e.Graphics);
             DrawBackground(e.Graphics);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-    }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
 
-    protected override void OnSizeChanged(EventArgs e)
-    {
-        RecalculateRegion();
+        base.OnPaint(e);
     }
 
     #endregion
