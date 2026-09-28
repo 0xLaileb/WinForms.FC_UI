@@ -141,6 +141,41 @@ public class FCheckBoxTests : IDisposable
         Assert.False(checkBox.Checked);
     }
 
+    [Fact]
+    public void StepClickAnimation_RippleReachesMaxSize_StopsTimer()
+    {
+        using var checkBox = new ClickableFCheckBox();
+        checkBox.InvokeMouseClick(MouseButtons.Left);
+        Assert.True(checkBox.IsClickAnimationRunning);
+
+        for (var i = 0; i < 100 && checkBox.IsClickAnimationRunning; i++) checkBox.StepClickAnimation();
+
+        Assert.False(checkBox.IsClickAnimationRunning);
+    }
+
+    [Fact]
+    public void LeftClick_CheckedControl_UnchecksWithoutAnimation()
+    {
+        using var checkBox = new ClickableFCheckBox { Checked = true };
+
+        checkBox.InvokeMouseClick(MouseButtons.Left);
+
+        Assert.False(checkBox.Checked);
+        Assert.False(checkBox.IsClickAnimationRunning);
+    }
+
+    [Fact]
+    public void Height_SetDifferentValue_StaysFixedAndRaisesSizeChangedOnce()
+    {
+        var sizeChangedCount = 0;
+        _checkBox.SizeChanged += (_, _) => sizeChangedCount++;
+
+        _checkBox.Size = new Size(200, 100);
+
+        Assert.Equal(new Size(200, 45), _checkBox.Size);
+        Assert.Equal(1, sizeChangedCount);
+    }
+
     private sealed class ClickableFCheckBox : FCheckBox
     {
         public void InvokeMouseClick(MouseButtons button) =>

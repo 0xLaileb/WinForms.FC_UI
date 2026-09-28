@@ -219,4 +219,36 @@ public class FButtonTests : IDisposable
     }
 
     #endregion
+
+    #region Click Animation Tests
+
+    [Fact]
+    public void StepClickAnimation_RippleCoversControl_StopsTimer()
+    {
+        using ClickableFButton button = new();
+        button.InvokeMouseUp(MouseButtons.Left);
+        Assert.True(button.IsClickAnimationRunning);
+
+        for (var i = 0; i < 100 && button.IsClickAnimationRunning; i++) button.StepClickAnimation();
+
+        Assert.False(button.IsClickAnimationRunning);
+    }
+
+    [Fact]
+    public void OnMouseUp_ClickEffectDisabled_DoesNotStartAnimation()
+    {
+        using ClickableFButton button = new() { EnableClickEffect = false };
+
+        button.InvokeMouseUp(MouseButtons.Left);
+
+        Assert.False(button.IsClickAnimationRunning);
+    }
+
+    private sealed class ClickableFButton : FButton
+    {
+        public void InvokeMouseUp(MouseButtons button) =>
+            OnMouseUp(new MouseEventArgs(button, 1, 10, 10, 0));
+    }
+
+    #endregion
 }

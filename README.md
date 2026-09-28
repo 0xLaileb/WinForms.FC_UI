@@ -82,7 +82,7 @@ Each control supports fine-grained visual customization including background col
 - **Language:** C# 14
 - **Platform:** Windows (WinForms)
 
-The repository includes `global.json` and NuGet lock files so local restore uses the same SDK feature band and dependency graph as CI.
+The repository includes `global.json` (SDK 10.0.300 or a later feature band) and `packages.lock.json` files, so `dotnet restore --locked-mode` resolves the same dependency graph locally and in CI. After changing a package version in `Directory.Packages.props`, run a regular `dotnet restore` once and commit the updated lock files.
 
 ### 📦 Installation
 
@@ -133,6 +133,17 @@ button.Rgb = true;
 button.ControlStyle = FControlBase.ControlStyleMode.Random;
 ```
 
+To animate all RGB-enabled controls in sync, add an `FGlobalRgb` component (from the Toolbox or in code):
+
+```csharp
+using FC_UI.Components;
+
+components ??= new System.ComponentModel.Container(); // the form's designer container
+var globalRgb = new FGlobalRgb(components) { TimerInterval = 50 };
+globalRgb.Status = true;  // controls with Rgb = true now share one hue
+globalRgb.Status = false; // they fall back to their own RgbUpdateInterval timers
+```
+
 👉 See the full working demo in [`examples/WinForms.FC_UI.Example/`](examples/WinForms.FC_UI.Example/).
 
 ---
@@ -156,6 +167,8 @@ button.ControlStyle = FControlBase.ControlStyleMode.Random;
 
 ### Common Properties
 
+Shared by all controls that derive from `FControlBase` (every control except `ZColorPicker`):
+
 | Property | Type | Description |
 |---|---|---|
 | `ShowBackground` | `bool` | Enable/disable background fill |
@@ -163,13 +176,16 @@ button.ControlStyle = FControlBase.ControlStyleMode.Random;
 | `Rounding` | `bool` | Enable/disable corner rounding |
 | `CornerRadius` | `int` | Rounding percentage (0–100) |
 | `Rgb` | `bool` | Enable/disable RGB color cycling mode |
+| `RgbUpdateInterval` | `int` | RGB animation timer interval in milliseconds (used while `FGlobalRgb` is off) |
 | `ShowBorder` | `bool` | Enable/disable border |
 | `BorderWidth` | `float` | Border width |
 | `BorderColor` | `Color` | Border color |
 | `Lighting` | `bool` | Enable/disable lighting/shadow effect |
 | `LightingColor` | `Color` | Lighting/shadow color |
-| `UseGradientBackground` | `bool` | Enable/disable background gradient |
-| `UseGradientBorder` | `bool` | Enable/disable border gradient |
+| `LightingAlpha` | `int` | Maximum lighting alpha (0–255) |
+| `LightingWidth` | `int` | Lighting/shadow width |
+| `UseGradientBackground` | `bool` | Enable/disable background gradient (`GradientColor1`, `GradientColor2`) |
+| `UseGradientBorder` | `bool` | Enable/disable border gradient (`GradientBorderColor1`, `GradientBorderColor2`) |
 | `SmoothingMode` | `SmoothingMode` | Graphics smoothing mode |
 | `TextRenderingHint` | `TextRenderingHint` | Text rendering quality |
 
@@ -177,7 +193,7 @@ button.ControlStyle = FControlBase.ControlStyleMode.Random;
 
 | Component | Description |
 |---|---|
-| `FGlobal_RGB` | Enables synchronized global RGB mode for all FC_UI controls |
+| `FGlobalRgb` | Enables synchronized global RGB mode for all FC_UI controls (`Status`, `TimerInterval`) |
 
 ---
 
@@ -199,8 +215,9 @@ Tests are located in [`tests/WinForms.FC_UI.Tests/`](tests/WinForms.FC_UI.Tests/
 WinForms.FC_UI/
 ├── 📁 src/
 │   ├── 📁 Components/
-│   │   └── 📄 FGlobal_RGB.cs             # Global RGB component
+│   │   └── 📄 FGlobalRgb.cs              # Global RGB component
 │   ├── 📁 Controls/
+│   │   ├── 📄 FControlBase.cs            # Shared base class for FC_UI controls
 │   │   ├── 📄 FButton.cs                 # Button control
 │   │   ├── 📄 FCheckBox.cs               # CheckBox control
 │   │   ├── 📄 FRadioButton.cs            # RadioButton control
@@ -229,6 +246,7 @@ WinForms.FC_UI/
 ├── 📁 resources/                           # Logo, demo GIFs
 ├── 📄 Directory.Build.props                # Shared build settings
 ├── 📄 Directory.Packages.props             # Central package management
+├── 📄 global.json                          # .NET SDK version
 ├── 📄 WinForms.FC_UI.slnx                 # Solution file
 ├── 📄 LICENSE
 └── 📄 README.md
@@ -242,7 +260,7 @@ WinForms.FC_UI/
 
 ![Default Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/default_style.gif)
 
-### RGB Mode (Global_RGB component)
+### RGB Mode (FGlobalRgb component)
 
 ![RGB Mode](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/rgb.gif)
 

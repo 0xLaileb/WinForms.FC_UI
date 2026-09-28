@@ -27,7 +27,7 @@ public partial class FSwitchBox : FControlBase
             if (field == value) return;
             field = value;
             CheckedChanged();
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -37,7 +37,7 @@ public partial class FSwitchBox : FControlBase
     public Color ColorValue
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Gradient Fill ---
@@ -48,7 +48,7 @@ public partial class FSwitchBox : FControlBase
     public bool UseGradientFill
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -57,7 +57,7 @@ public partial class FSwitchBox : FControlBase
     public Color GradientFillColor1
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -66,7 +66,7 @@ public partial class FSwitchBox : FControlBase
     public Color GradientFillColor2
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Style ---
@@ -150,7 +150,7 @@ public partial class FSwitchBox : FControlBase
                     ColorValue = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -162,7 +162,7 @@ public partial class FSwitchBox : FControlBase
     {
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     #endregion
@@ -176,20 +176,15 @@ public partial class FSwitchBox : FControlBase
             ApplyGraphicsSettings(e.Graphics);
             DrawBackground(e.Graphics);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+
+        base.OnPaint(e);
     }
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
-        if (e.Button != MouseButtons.Left) return;
-
-        Checked = !Checked;
-        Refresh();
-    }
-
-    protected override void OnSizeChanged(EventArgs e)
-    {
-        RecalculateRegion();
+        if (e.Button == MouseButtons.Left) Checked = !Checked;
+        base.OnMouseClick(e);
     }
 
     #endregion

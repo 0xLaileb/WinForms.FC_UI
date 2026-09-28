@@ -28,8 +28,6 @@ public abstract class FControlBase : UserControl
     protected Rectangle RegionRect;
     protected GraphicsPath ShapePath = new();
     protected Size ControlSize;
-    private EventHandler? _rgbTickHandler;
-    private EventHandler? _globalRgbTickHandler;
 
     #endregion
 
@@ -60,46 +58,24 @@ public abstract class FControlBase : UserControl
         {
             field = value;
 
-            _rgbTimer.Stop();
-            if (_rgbTickHandler is not null)
-            {
-                _rgbTimer.Tick -= _rgbTickHandler;
-                _rgbTickHandler = null;
-            }
-
-            if (_globalRgbTickHandler is not null)
-            {
-                DrawEngine.GlobalRgbTimer.Tick -= _globalRgbTickHandler;
-                _globalRgbTickHandler = null;
-            }
+            DrawEngine.GlobalRgbTimer.Tick -= OnGlobalRgbTimerTick;
 
             if (field)
             {
-                if (DrawEngine.GlobalRgbTimer.Enabled)
-                {
-                    // GetRgbOrColor reads the global hue while the shared timer is active;
-                    // controls only need a repaint subscription here.
-                    _globalRgbTickHandler = (_, _) => Refresh();
-                    DrawEngine.GlobalRgbTimer.Tick += _globalRgbTickHandler;
-                }
-                else
-                {
-                    _rgbTickHandler = (_, _) =>
-                    {
-                        Hue += 4;
-                        if (Hue >= 360) Hue = 0;
-                        Refresh();
-                    };
-                    _rgbTimer.Tick += _rgbTickHandler;
-                    _rgbTimer.Start();
-                }
+                // Both subscriptions stay active so the control keeps animating
+                // when global RGB mode is switched on or off after this point.
+                DrawEngine.GlobalRgbTimer.Tick += OnGlobalRgbTimerTick;
+                _rgbTimer.Start();
             }
             else
             {
-                Refresh();
+                _rgbTimer.Stop();
+                Invalidate(true);
             }
         }
     }
+
+    internal bool IsRgbTimerRunning => _rgbTimer.Enabled;
 
     // --- Rounding ---
 
@@ -108,7 +84,7 @@ public abstract class FControlBase : UserControl
     public bool Rounding
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Description("Corner radius percentage (0-100)")]
@@ -121,7 +97,7 @@ public abstract class FControlBase : UserControl
             if (value is >= 0 and <= 100)
             {
                 field = value;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -133,7 +109,7 @@ public abstract class FControlBase : UserControl
     public bool ShowBackground
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Description("Background color")]
@@ -141,7 +117,7 @@ public abstract class FControlBase : UserControl
     public Color BackgroundColor
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Border ---
@@ -155,8 +131,8 @@ public abstract class FControlBase : UserControl
         set
         {
             field = value;
-            OnSizeChanged(EventArgs.Empty);
-            Refresh();
+            UpdateGeometry();
+            Invalidate(true);
         }
     }
 
@@ -170,8 +146,8 @@ public abstract class FControlBase : UserControl
         {
             if (value < 0) return;
             field = value;
-            OnSizeChanged(EventArgs.Empty);
-            Refresh();
+            UpdateGeometry();
+            Invalidate(true);
         }
     }
 
@@ -181,7 +157,7 @@ public abstract class FControlBase : UserControl
     public Color BorderColor
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Lighting ---
@@ -195,8 +171,8 @@ public abstract class FControlBase : UserControl
         set
         {
             field = value;
-            OnSizeChanged(EventArgs.Empty);
-            Refresh();
+            UpdateGeometry();
+            Invalidate(true);
         }
     }
 
@@ -206,7 +182,7 @@ public abstract class FControlBase : UserControl
     public Color LightingColor
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("Lighting")]
@@ -220,7 +196,7 @@ public abstract class FControlBase : UserControl
             if (value is >= 0 and <= 255)
             {
                 field = value;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -235,8 +211,8 @@ public abstract class FControlBase : UserControl
         {
             if (value < 0) return;
             field = value;
-            OnSizeChanged(EventArgs.Empty);
-            Refresh();
+            UpdateGeometry();
+            Invalidate(true);
         }
     }
 
@@ -248,7 +224,7 @@ public abstract class FControlBase : UserControl
     public bool UseGradientBackground
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -257,7 +233,7 @@ public abstract class FControlBase : UserControl
     public Color GradientColor1
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -266,7 +242,7 @@ public abstract class FControlBase : UserControl
     public Color GradientColor2
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Linear Gradient Border ---
@@ -277,7 +253,7 @@ public abstract class FControlBase : UserControl
     public bool UseGradientBorder
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -286,7 +262,7 @@ public abstract class FControlBase : UserControl
     public Color GradientBorderColor1
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -295,7 +271,7 @@ public abstract class FControlBase : UserControl
     public Color GradientBorderColor2
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Graphics Quality ---
@@ -308,7 +284,7 @@ public abstract class FControlBase : UserControl
         set
         {
             if (value != SmoothingMode.Invalid) field = value;
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -317,7 +293,7 @@ public abstract class FControlBase : UserControl
     public TextRenderingHint TextRenderingHint
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     #endregion
@@ -337,6 +313,7 @@ public abstract class FControlBase : UserControl
             true);
         DoubleBuffered = true;
         Tag = "FC_UI";
+        _rgbTimer.Tick += OnRgbTimerTick;
     }
 
     protected override void Dispose(bool disposing)
@@ -344,21 +321,40 @@ public abstract class FControlBase : UserControl
         if (disposing)
         {
             _rgbTimer.Stop();
-            if (_rgbTickHandler is not null)
-            {
-                _rgbTimer.Tick -= _rgbTickHandler;
-                _rgbTickHandler = null;
-            }
-            if (_globalRgbTickHandler is not null)
-            {
-                DrawEngine.GlobalRgbTimer.Tick -= _globalRgbTickHandler;
-                _globalRgbTickHandler = null;
-            }
+            _rgbTimer.Tick -= OnRgbTimerTick;
+            DrawEngine.GlobalRgbTimer.Tick -= OnGlobalRgbTimerTick;
             _rgbTimer.Dispose();
             ShapePath.Dispose();
         }
         base.Dispose(disposing);
     }
+
+    #endregion
+
+    #region Events
+
+    protected override void OnSizeChanged(EventArgs e)
+    {
+        UpdateGeometry();
+        base.OnSizeChanged(e);
+    }
+
+    /// <summary>
+    /// Recalculates layout-dependent geometry after a size, border, or lighting change.
+    /// </summary>
+    protected virtual void UpdateGeometry() => RecalculateRegion();
+
+    private void OnRgbTimerTick(object? sender, EventArgs e)
+    {
+        // While global RGB mode runs, the shared timer advances the hue and repaints.
+        if (DrawEngine.GlobalRgbTimer.Enabled) return;
+
+        Hue += 4;
+        if (Hue >= 360) Hue = 0;
+        Refresh();
+    }
+
+    private void OnGlobalRgbTimerTick(object? sender, EventArgs e) => Refresh();
 
     #endregion
 

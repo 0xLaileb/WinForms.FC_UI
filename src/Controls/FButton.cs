@@ -16,7 +16,6 @@ public partial class FButton : FControlBase
     private readonly StringFormat _textFormat = new();
     private int _animationSize;
     private bool _isMouseHovered;
-    private EventHandler? _effectTickHandler;
 
     #endregion
 
@@ -28,7 +27,7 @@ public partial class FButton : FControlBase
     public string DisplayText
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     } = string.Empty;
 
     // --- Effects ---
@@ -164,7 +163,7 @@ public partial class FButton : FControlBase
                     }
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -179,8 +178,9 @@ public partial class FButton : FControlBase
 
         _textFormat.Alignment = StringAlignment.Center;
         _textFormat.LineAlignment = StringAlignment.Center;
+        _clickAnimationTimer.Tick += (_, _) => StepClickAnimation();
 
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
@@ -208,13 +208,16 @@ public partial class FButton : FControlBase
 
             ShapePath.ClearMarkers();
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+
+        base.OnPaint(e);
     }
 
     protected override void OnMouseEnter(EventArgs e)
     {
         _isMouseHovered = true;
         Refresh();
+        base.OnMouseEnter(e);
     }
 
     protected override void OnMouseLeave(EventArgs e)
@@ -223,35 +226,39 @@ public partial class FButton : FControlBase
         _isMouseHovered = false;
         _animationSize = 0;
         Refresh();
+        base.OnMouseLeave(e);
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
     {
         _clickAnimationTimer.Stop();
-        if (_effectTickHandler is not null)
-        {
-            _clickAnimationTimer.Tick -= _effectTickHandler;
-            _effectTickHandler = null;
-        }
 
         if (e.Button == MouseButtons.Left && EnableClickEffect)
         {
             _clickLocation = e.Location;
             _animationSize = 2;
-
-            _effectTickHandler = (_, _) =>
-            {
-                _animationSize += 20;
-                Refresh();
-            };
-            _clickAnimationTimer.Tick += _effectTickHandler;
             _clickAnimationTimer.Start();
         }
+
+        base.OnMouseUp(e);
     }
 
-    protected override void OnSizeChanged(EventArgs e)
+    #endregion
+
+    #region Animation
+
+    internal bool IsClickAnimationRunning => _clickAnimationTimer.Enabled;
+
+    private int ClickAnimationMaxSize => Math.Max(ControlSize.Width, ControlSize.Height) * 2;
+
+    internal void StepClickAnimation()
     {
-        RecalculateRegion();
+        _animationSize += 20;
+
+        // Stop once the ripple has covered the control instead of repainting forever.
+        if (_animationSize >= ClickAnimationMaxSize) _clickAnimationTimer.Stop();
+
+        Refresh();
     }
 
     #endregion
@@ -306,11 +313,7 @@ public partial class FButton : FControlBase
 
     private void DrawClickAnimation(Graphics graphics)
     {
-        var maxDimension = ControlSize.Width >= ControlSize.Height
-            ? ControlSize.Width * 2
-            : ControlSize.Height * 2;
-
-        if (_animationSize < maxDimension)
+        if (_animationSize < ClickAnimationMaxSize)
         {
             Rectangle circleRect = new(
                 _clickLocation.X - _animationSize / 2,

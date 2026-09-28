@@ -175,6 +175,64 @@ public class FScrollBarTests : IDisposable
     }
 
     [Fact]
+    public void Orientation_SetSameVerticalValue_KeepsCornerRadius()
+    {
+        var original = _scrollBar.CornerRadius;
+
+        _scrollBar.Orientation = Orientation.Vertical;
+
+        Assert.Equal(original, _scrollBar.CornerRadius);
+    }
+
+    [Fact]
+    public void Orientation_SetHorizontalTwice_SwapsSizeOnce()
+    {
+        var original = _scrollBar.Size;
+
+        _scrollBar.Orientation = Orientation.Horizontal;
+        _scrollBar.Orientation = Orientation.Horizontal;
+
+        Assert.Equal(new Size(original.Height, original.Width), _scrollBar.Size);
+    }
+
+    [Fact]
+    public void Orientation_HorizontalThenVertical_RestoresSizeAndCornerRadius()
+    {
+        var originalSize = _scrollBar.Size;
+        var originalRadius = _scrollBar.CornerRadius;
+
+        _scrollBar.Orientation = Orientation.Horizontal;
+        _scrollBar.Orientation = Orientation.Vertical;
+
+        Assert.Equal(originalSize, _scrollBar.Size);
+        Assert.Equal(originalRadius, _scrollBar.CornerRadius);
+    }
+
+    [Fact]
+    public void Orientation_DesignerLoadOrderForHorizontalBar_KeepsSerializedValues()
+    {
+        // WinForms designer code assigns CornerRadius, then Orientation, then Size.
+        _scrollBar.CornerRadius = 70;
+        _scrollBar.Orientation = Orientation.Horizontal;
+        _scrollBar.Size = new Size(350, 30);
+
+        Assert.Equal(70, _scrollBar.CornerRadius);
+        Assert.Equal(new Size(350, 30), _scrollBar.Size);
+    }
+
+    [Fact]
+    public void ControlStyleDefault_HorizontalBar_RestoresVerticalDefaultSize()
+    {
+        _scrollBar.Orientation = Orientation.Horizontal;
+
+        _scrollBar.ControlStyle = FControlBase.ControlStyleMode.Default;
+
+        Assert.Equal(Orientation.Vertical, _scrollBar.Orientation);
+        Assert.Equal(new Size(26, 300), _scrollBar.Size);
+        Assert.Equal(7, _scrollBar.CornerRadius);
+    }
+
+    [Fact]
     public void Tag_IsSetToFC_UI()
     {
         Assert.Equal("FC_UI", _scrollBar.Tag);

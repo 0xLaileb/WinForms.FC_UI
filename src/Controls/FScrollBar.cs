@@ -45,18 +45,19 @@ public partial class FScrollBar : FControlBase
         get;
         set
         {
-            if (value == Orientation.Vertical)
-            {
-                Size = new Size(Size.Width, Size.Height);
-                if (CornerRadius != 0) CornerRadius /= 10;
-            }
-            else
-            {
-                Size = new Size(Size.Height, Size.Width);
-                if (CornerRadius != 0) CornerRadius *= 10;
-            }
+            // Re-applying the current orientation must not swap the size or rescale the radius again
+            // (the designer assigns Orientation on every load).
+            if (field == value) return;
             field = value;
-            Refresh();
+
+            Size = new Size(Size.Height, Size.Width);
+            if (CornerRadius != 0)
+            {
+                // CornerRadius is a percentage of the height, which changes with the orientation.
+                // Out-of-range results are ignored by the CornerRadius setter.
+                CornerRadius = value == Orientation.Vertical ? CornerRadius / 10 : CornerRadius * 10;
+            }
+            Invalidate(true);
         }
     }
 
@@ -71,7 +72,7 @@ public partial class FScrollBar : FControlBase
     public int ThumbSize
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("Value")]
@@ -86,7 +87,7 @@ public partial class FScrollBar : FControlBase
             {
                 field = value;
                 if (Value > field) Value = field;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -103,7 +104,7 @@ public partial class FScrollBar : FControlBase
             {
                 field = value;
                 if (Value < field) Value = field;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -114,7 +115,7 @@ public partial class FScrollBar : FControlBase
     public Color ThumbColor
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("Value")]
@@ -128,7 +129,7 @@ public partial class FScrollBar : FControlBase
             if (value is >= 10 and <= 255)
             {
                 field = value;
-                Refresh();
+                Invalidate(true);
             }
         }
     }
@@ -141,7 +142,7 @@ public partial class FScrollBar : FControlBase
     public bool UseGradientFill
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -150,7 +151,7 @@ public partial class FScrollBar : FControlBase
     public Color GradientFillColor1
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     [Category("LinearGradient")]
@@ -159,7 +160,7 @@ public partial class FScrollBar : FControlBase
     public Color GradientFillColor2
     {
         get;
-        set { field = value; Refresh(); }
+        set { field = value; Invalidate(true); }
     }
 
     // --- Style ---
@@ -176,13 +177,14 @@ public partial class FScrollBar : FControlBase
             switch (field)
             {
                 case ControlStyleMode.Default:
+                    // Orientation first: switching it swaps the size set below.
+                    Orientation = Orientation.Vertical;
                     Size = new Size(26, 300);
                     BackColor = Color.Transparent;
                     ForeColor = Color.FromArgb(245, 245, 245);
                     Value = 0;
                     Minimum = 0;
                     Maximum = 100;
-                    Orientation = Orientation.Vertical;
                     ThumbSize = 60;
                     SmallStep = 1;
                     Rgb = false;
@@ -249,7 +251,7 @@ public partial class FScrollBar : FControlBase
                     ThumbOpacity = HelpEngine.RandomInt(10, 255);
                     break;
             }
-            Refresh();
+            Invalidate(true);
         }
     }
 
@@ -265,7 +267,7 @@ public partial class FScrollBar : FControlBase
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
 
-        OnSizeChanged(EventArgs.Empty);
+        UpdateGeometry();
     }
 
     #endregion
@@ -279,7 +281,9 @@ public partial class FScrollBar : FControlBase
             ApplyGraphicsSettings(e.Graphics);
             DrawBackground(e.Graphics);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+
+        base.OnPaint(e);
     }
 
     public virtual void OnScroll(ScrollEventType type = ScrollEventType.ThumbPosition)
@@ -290,16 +294,13 @@ public partial class FScrollBar : FControlBase
     protected override void OnMouseDown(MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left) HandleMouseScroll(e);
+        base.OnMouseDown(e);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left) HandleMouseScroll(e);
-    }
-
-    protected override void OnSizeChanged(EventArgs e)
-    {
-        RecalculateRegion();
+        base.OnMouseMove(e);
     }
 
     private void HandleMouseScroll(MouseEventArgs e)
