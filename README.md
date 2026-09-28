@@ -27,7 +27,6 @@
 - [🏗️ Project Structure](#️-project-structure)
 - [🔎 Demos](#-demos)
 - [🤝 Contributing](#-contributing)
-- [🔮 Roadmap](#-roadmap)
 - [📄 License](#-license)
 
 ---
@@ -168,8 +167,6 @@ globalRgb.Status = false; // they fall back to their own RgbUpdateInterval timer
 
 ### Controls
 
-| Control | Description |
-|---|---|
 | Control | Description | Notable members |
 |---|---|---|
 | `FButton` | Button with click/hover effects, image, `IButtonControl` support | `DisplayText`, `Image`, `ImageSize`, `TextImageRelation`, `DialogResult`, `PerformClick()` |
@@ -249,6 +246,8 @@ Behavior that changed after 3.1.5 and may affect existing code:
 - `ZColorPicker` derives from `FControlBase` and no longer contains `PictureBox`/`Label` children. `SelectedColor` can be set from code (it moves the markers), and `ColorChanged` is raised only when the color actually changes.
 - `FScrollBar` implements `ISupportInitialize`; the WinForms designer adds `BeginInit`/`EndInit` the next time the form is saved, which keeps the serialized `Size` and `CornerRadius` of horizontal bars.
 - Disabled controls (`Enabled = false`) are drawn in grayscale.
+- `FProgressBar` and `FGroupBox` are no longer Tab stops, like the standard `ProgressBar` and `GroupBox`.
+- Two quick clicks on `FButton` raise two `Click` events (as with `Button`) instead of `Click` and `DoubleClick`.
 
 ---
 
@@ -302,6 +301,7 @@ WinForms.FC_UI/
 │       └── 📄 WinForms.FC_UI.Tests.csproj
 ├── 📁 examples/
 │   └── 📁 WinForms.FC_UI.Example/        # Demo application
+│       ├── 📄 Demo.cs                    # Demo form
 │       ├── 📄 Program.cs
 │       └── 📄 WinForms.FC_UI.Example.csproj
 ├── 📁 resources/                           # Logo, demo GIFs
@@ -319,13 +319,19 @@ WinForms.FC_UI/
 
 ### Default Style
 
+Hover and click effects, checkbox animation, scroll bar driving the progress bar, color picking, and keyboard focus cues.
+
 ![Default Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/default_style.gif)
 
 ### RGB Mode (FGlobalRgb component)
 
+All controls with `Rgb = true` cycling through one shared hue.
+
 ![RGB Mode](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/rgb.gif)
 
 ### Random Style
+
+`ControlStyle = Random` applied to every control several times.
 
 ![Random Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/random_style.gif)
 
@@ -340,15 +346,6 @@ Contributions are welcome! To get started:
 3. ✏️ Make your changes and add tests
 4. ✅ Run `dotnet test` to verify everything passes
 5. 📬 Open a Pull Request
-
----
-
-## 🔮 Roadmap
-
-Ideas for future releases:
-
-1. **FTextBox / FRichTextBox**: gradient background (needs owner-drawn text editing instead of the native control).
-2. **Demo GIFs**: re-record the demos to show the newer effects (focus cues, sliding switch, disabled look).
 
 ---
 
