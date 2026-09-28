@@ -132,9 +132,56 @@ public class FSwitchBoxTests : IDisposable
         Assert.False(switchBox.Checked);
     }
 
+    [Fact]
+    public void Checked_NoHandle_MovesKnobImmediately()
+    {
+        _switchBox.Checked = true;
+
+        Assert.False(_switchBox.IsToggleAnimationRunning);
+        Assert.Equal(1F, _switchBox.KnobPosition);
+    }
+
+    [Fact]
+    public void Checked_HandleCreated_AnimatesKnobToTarget()
+    {
+        _ = _switchBox.Handle;
+
+        _switchBox.Checked = true;
+        Assert.True(_switchBox.IsToggleAnimationRunning);
+        Assert.Equal(0F, _switchBox.KnobPosition);
+
+        for (var i = 0; i < 20 && _switchBox.IsToggleAnimationRunning; i++) _switchBox.StepToggleAnimation();
+
+        Assert.False(_switchBox.IsToggleAnimationRunning);
+        Assert.Equal(1F, _switchBox.KnobPosition);
+    }
+
+    [Fact]
+    public void SpaceKeyUp_Unchecked_ChecksControl()
+    {
+        using ClickableFSwitchBox switchBox = new();
+
+        switchBox.InvokeKeyUp(Keys.Space);
+
+        Assert.True(switchBox.Checked);
+    }
+
+    [Fact]
+    public void AccessibilityObject_Checked_ReportsCheckButtonState()
+    {
+        _switchBox.Checked = true;
+
+        var accessible = _switchBox.AccessibilityObject;
+
+        Assert.Equal(AccessibleRole.CheckButton, accessible.Role);
+        Assert.True(accessible.State.HasFlag(AccessibleStates.Checked));
+    }
+
     private sealed class ClickableFSwitchBox : FSwitchBox
     {
         public void InvokeMouseClick(MouseButtons button) =>
             OnMouseClick(new MouseEventArgs(button, 1, 0, 0, 0));
+
+        public void InvokeKeyUp(Keys key) => OnKeyUp(new KeyEventArgs(key));
     }
 }

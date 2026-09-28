@@ -156,4 +156,48 @@ public class FProgressBarTests : IDisposable
     {
         Assert.Equal("FC_UI", _progressBar.Tag);
     }
+
+    [Fact]
+    public void TabStop_Default_IsFalse()
+    {
+        Assert.False(_progressBar.TabStop);
+    }
+
+    [Fact]
+    public void AccessibilityObject_Value_ReportsProgressPercent()
+    {
+        _progressBar.Value = 50;
+
+        var accessible = _progressBar.AccessibilityObject;
+
+        Assert.Equal(AccessibleRole.ProgressBar, accessible.Role);
+        Assert.Equal("50%", accessible.Value);
+    }
+
+    [Fact]
+    public void Value_AnimationDisabled_DrawsNewValueImmediately()
+    {
+        _ = _progressBar.Handle;
+
+        _progressBar.Value = 80;
+
+        Assert.False(_progressBar.IsValueAnimationRunning);
+        Assert.Equal(80, _progressBar.DisplayedValue);
+    }
+
+    [Fact]
+    public void Value_AnimationEnabled_ReachesTargetAndStops()
+    {
+        _ = _progressBar.Handle;
+        _progressBar.EnableValueAnimation = true;
+
+        _progressBar.Value = 80;
+        Assert.True(_progressBar.IsValueAnimationRunning);
+        Assert.Equal(80, _progressBar.Value);
+
+        for (var i = 0; i < 200 && _progressBar.IsValueAnimationRunning; i++) _progressBar.StepValueAnimation();
+
+        Assert.False(_progressBar.IsValueAnimationRunning);
+        Assert.Equal(80, _progressBar.DisplayedValue);
+    }
 }

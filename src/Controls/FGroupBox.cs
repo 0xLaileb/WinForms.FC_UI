@@ -19,6 +19,15 @@ public partial class FGroupBox : FControlBase
     #region Properties
 
     [Category("FGroupBox")]
+    [Description("Caption drawn at the top of the frame (empty = no caption)")]
+    [DefaultValue("")]
+    public string DisplayText
+    {
+        get;
+        set { field = value ?? string.Empty; Invalidate(); }
+    } = string.Empty;
+
+    [Category("FGroupBox")]
     [Description("Control style")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public ControlStyleMode ControlStyle
@@ -94,11 +103,17 @@ public partial class FGroupBox : FControlBase
 
     public FGroupBox()
     {
+        // Like GroupBox: the frame itself is skipped by Tab navigation, its children are not.
+        SetStyle(ControlStyles.Selectable, false);
+        TabStop = false;
+
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
 
-        _textFormat.Alignment = StringAlignment.Center;
-        _textFormat.LineAlignment = StringAlignment.Center;
+        _textFormat.Alignment = StringAlignment.Near;
+        _textFormat.LineAlignment = StringAlignment.Near;
+        _textFormat.Trimming = StringTrimming.EllipsisCharacter;
+        _textFormat.FormatFlags = StringFormatFlags.NoWrap;
 
         UpdateGeometry();
     }
@@ -111,59 +126,41 @@ public partial class FGroupBox : FControlBase
 
     #endregion
 
-    #region Events
+    #region Accessibility
 
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.Grouping;
 
-        base.OnPaint(e);
-    }
+    protected override string? AccessibleText => string.IsNullOrEmpty(DisplayText) ? null : DisplayText;
 
     #endregion
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    protected override void PaintControl(Graphics graphics)
     {
         var roundingValue = PrepareGeometry(Height);
 
-        // Border layer
-        using var borderLayer = RenderBorderLayer(roundingValue);
-        formGraphics.DrawImage(borderLayer, PointF.Empty);
+        DrawBorder(graphics, roundingValue);
 
-        // Content layer with wider clip for GroupBox
-        Bitmap contentBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
-        {
-            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
-                RegionRect.X - (int)(2 + BorderWidth),
-                RegionRect.Y - (int)(2 + BorderWidth),
-                RegionRect.Width + (int)(2 + BorderWidth) * 2,
-                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
-            using Region clipRegion = new(clipPath);
-            g.Clip = clipRegion;
+        var state = ClipToContent(graphics, roundingValue, (int)(2 + BorderWidth));
+        FillBackground(graphics);
+        graphics.Restore(state);
 
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, ShapePath);
-                }
-            }
-        }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
+        if (!string.IsNullOrEmpty(DisplayText)) DrawCaption(graphics, roundingValue);
+    }
+
+    private void DrawCaption(Graphics graphics, float roundingValue)
+    {
+        // Start the caption after the rounded corner so it stays inside the frame.
+        var inset = (int)Math.Max(BorderWidth + 6, roundingValue / 3);
+        RectangleF captionRect = new(
+            RegionRect.X + inset,
+            RegionRect.Y + BorderWidth + 4,
+            Math.Max(0, RegionRect.Width - inset * 2),
+            Font.Height + 2);
+
+        using SolidBrush brush = new(ForeColor);
+        graphics.DrawString(DisplayText, Font, brush, captionRect, _textFormat);
     }
 
     #endregion

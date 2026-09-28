@@ -78,30 +78,28 @@ internal static class DrawEngine
     /// </summary>
     public static readonly Timer GlobalRgbTimer = new() { Interval = 50 };
 
-    private static EventHandler? _sGlobalRgbHandler;
+    /// <summary>
+    /// Raised on every global RGB timer tick after the shared hue has advanced.
+    /// </summary>
+    public static event EventHandler? GlobalRgbTick;
+
+    static DrawEngine()
+    {
+        GlobalRgbTimer.Tick += static (_, _) =>
+        {
+            _sGlobalHue += 4;
+            if (_sGlobalHue >= 360) _sGlobalHue = 0;
+            GlobalRgbTick?.Invoke(null, EventArgs.Empty);
+        };
+    }
 
     /// <summary>
     /// Enables or disables the global RGB timer.
     /// </summary>
     public static void SetGlobalRgbTimer(bool enabled)
     {
-        GlobalRgbTimer.Stop();
-
-        if (_sGlobalRgbHandler is not null)
-        {
-            GlobalRgbTimer.Tick -= _sGlobalRgbHandler;
-            _sGlobalRgbHandler = null;
-        }
-
-        if (!enabled) return;
-
-        _sGlobalRgbHandler = static (_, _) =>
-        {
-            _sGlobalHue += 4;
-            if (_sGlobalHue >= 360) _sGlobalHue = 0;
-        };
-        GlobalRgbTimer.Tick += _sGlobalRgbHandler;
-        GlobalRgbTimer.Start();
+        if (enabled) GlobalRgbTimer.Start();
+        else GlobalRgbTimer.Stop();
     }
 
     /// <summary>
@@ -109,6 +107,31 @@ internal static class DrawEngine
     /// </summary>
     public static Color GetRgbColor(float hue) =>
         HsvToRgb(GlobalRgbTimer.Enabled ? _sGlobalHue : hue, 1f, 1f);
+
+    /// <summary>
+    /// Converts an RGB color to HSV (hue 0..360, saturation 0..1, value 0..1). Alpha is ignored.
+    /// </summary>
+    public static (float Hue, float Saturation, float Value) RgbToHsv(Color color)
+    {
+        var r = color.R / 255f;
+        var g = color.G / 255f;
+        var b = color.B / 255f;
+        var max = Math.Max(r, Math.Max(g, b));
+        var min = Math.Min(r, Math.Min(g, b));
+        var delta = max - min;
+
+        var hue = 0f;
+        if (delta > 0)
+        {
+            if (max == r) hue = 60 * ((g - b) / delta % 6);
+            else if (max == g) hue = 60 * ((b - r) / delta + 2);
+            else hue = 60 * ((r - g) / delta + 4);
+            if (hue < 0) hue += 360;
+        }
+
+        var saturation = max > 0 ? delta / max : 0;
+        return (hue, saturation, max);
+    }
 
     /// <summary>
     /// Converts HSV color to RGB.

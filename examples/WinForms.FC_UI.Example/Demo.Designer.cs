@@ -51,6 +51,7 @@ namespace WinForms.FC_UI.Example
             fGlobalRgb1 = new FGlobalRgb(components);
             exit = new PictureBox();
             ((System.ComponentModel.ISupportInitialize)exit).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)fScrollBar1).BeginInit();
             SuspendLayout();
             // 
             // label1
@@ -186,7 +187,7 @@ namespace WinForms.FC_UI.Example
             fTextBox2.LightingAlpha = 20;
             fTextBox2.LightingColor = Color.FromArgb(29, 200, 238);
             fTextBox2.LightingWidth = 15;
-            fTextBox2.Location = new Point(153, 673);
+            fTextBox2.Location = new Point(238, 440);
             fTextBox2.Margin = new Padding(6, 3, 6, 3);
             fTextBox2.Name = "fTextBox2";
             fTextBox2.Password = true;
@@ -194,7 +195,7 @@ namespace WinForms.FC_UI.Example
             fTextBox2.Rounding = true;
             fTextBox2.ShowBackground = false;
             fTextBox2.ShowBorder = true;
-            fTextBox2.Size = new Size(317, 61);
+            fTextBox2.Size = new Size(175, 50);
             fTextBox2.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
             fTextBox2.TabIndex = 10;
             fTextBox2.Tag = "FC_UI";
@@ -244,7 +245,6 @@ namespace WinForms.FC_UI.Example
             // zColorPicker
             // 
             zColorPicker.BackColor = Color.Transparent;
-            zColorPicker.ForeColor = Color.Black;
             zColorPicker.Location = new Point(491, 110);
             zColorPicker.Margin = new Padding(5, 3, 5, 3);
             zColorPicker.Name = "zColorPicker";
@@ -273,14 +273,14 @@ namespace WinForms.FC_UI.Example
             fTextBox1.LightingAlpha = 20;
             fTextBox1.LightingColor = Color.FromArgb(29, 200, 238);
             fTextBox1.LightingWidth = 15;
-            fTextBox1.Location = new Point(178, 676);
+            fTextBox1.Location = new Point(56, 440);
             fTextBox1.Margin = new Padding(7, 3, 7, 3);
             fTextBox1.Name = "fTextBox1";
             fTextBox1.RgbUpdateInterval = 300;
             fTextBox1.Rounding = true;
             fTextBox1.ShowBackground = false;
             fTextBox1.ShowBorder = true;
-            fTextBox1.Size = new Size(370, 70);
+            fTextBox1.Size = new Size(175, 50);
             fTextBox1.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
             fTextBox1.TabIndex = 7;
             fTextBox1.Tag = "FC_UI";
@@ -470,6 +470,7 @@ namespace WinForms.FC_UI.Example
             fGroupBox1.LightingAlpha = 20;
             fGroupBox1.LightingColor = Color.FromArgb(29, 200, 238);
             fGroupBox1.LightingWidth = 15;
+            fGroupBox1.DisplayText = "FGroupBox";
             fGroupBox1.Location = new Point(56, 272);
             fGroupBox1.Margin = new Padding(4, 3, 4, 3);
             fGroupBox1.Name = "fGroupBox1";
@@ -613,6 +614,7 @@ namespace WinForms.FC_UI.Example
             Name = "Demo";
             MouseDown += Demo_MouseDown;
             ((System.ComponentModel.ISupportInitialize)exit).EndInit();
+            ((System.ComponentModel.ISupportInitialize)fScrollBar1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }

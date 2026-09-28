@@ -165,20 +165,81 @@ public class FCheckBoxTests : IDisposable
     }
 
     [Fact]
-    public void Height_SetDifferentValue_StaysFixedAndRaisesSizeChangedOnce()
+    public void Height_SetDoubleValue_ScalesBoxAndRaisesSizeChangedOnce()
     {
+        using ClickableFCheckBox checkBox = new();
         var sizeChangedCount = 0;
-        _checkBox.SizeChanged += (_, _) => sizeChangedCount++;
+        checkBox.SizeChanged += (_, _) => sizeChangedCount++;
 
-        _checkBox.Size = new Size(200, 100);
+        checkBox.Size = new Size(200, 90);
 
-        Assert.Equal(new Size(200, 45), _checkBox.Size);
+        Assert.Equal(new Size(200, 90), checkBox.Size);
         Assert.Equal(1, sizeChangedCount);
+        Assert.Equal(new Size(42, 42), checkBox.Box.Size);
+    }
+
+    [Fact]
+    public void Constructor_DefaultHeight_KeepsOriginalBoxGeometry()
+    {
+        using ClickableFCheckBox checkBox = new();
+
+        Assert.Equal(new Rectangle(15, 10, 21, 21), checkBox.Box);
+    }
+
+    [Fact]
+    public void DrawToBitmap_LightingEnabled_DrawsGlowAroundBox()
+    {
+        using FCheckBox checkBox = new() { LightingColor = Color.Red, LightingAlpha = 200 };
+        using Bitmap bitmap = new(checkBox.Width, checkBox.Height);
+        // Just outside the box border (box spans x 15..36).
+        Point sample = new(12, checkBox.Height / 2 - 1);
+
+        checkBox.DrawToBitmap(bitmap, new Rectangle(Point.Empty, checkBox.Size));
+        var withoutLighting = bitmap.GetPixel(sample.X, sample.Y);
+        checkBox.Lighting = true;
+        checkBox.DrawToBitmap(bitmap, new Rectangle(Point.Empty, checkBox.Size));
+        var withLighting = bitmap.GetPixel(sample.X, sample.Y);
+
+        Assert.True(withoutLighting.G - withLighting.G > 50, $"{withoutLighting} -> {withLighting}");
+    }
+
+    [Fact]
+    public void SpaceKeyUp_Unchecked_ChecksControl()
+    {
+        using ClickableFCheckBox checkBox = new();
+
+        checkBox.InvokeKeyUp(Keys.Space);
+
+        Assert.True(checkBox.Checked);
+    }
+
+    [Fact]
+    public void AccessibilityObject_Checked_ReportsRoleNameAndState()
+    {
+        _checkBox.Checked = true;
+
+        var accessible = _checkBox.AccessibilityObject;
+
+        Assert.Equal(AccessibleRole.CheckButton, accessible.Role);
+        Assert.Equal("FCheckBox", accessible.Name);
+        Assert.True(accessible.State.HasFlag(AccessibleStates.Checked));
+    }
+
+    [Fact]
+    public void AccessibilityObject_DoDefaultAction_TogglesChecked()
+    {
+        _checkBox.AccessibilityObject.DoDefaultAction();
+
+        Assert.True(_checkBox.Checked);
     }
 
     private sealed class ClickableFCheckBox : FCheckBox
     {
         public void InvokeMouseClick(MouseButtons button) =>
             OnMouseClick(new MouseEventArgs(button, 1, 0, 0, 0));
+
+        public void InvokeKeyUp(Keys key) => OnKeyUp(new KeyEventArgs(key));
+
+        public Rectangle Box => RegionRect;
     }
 }
