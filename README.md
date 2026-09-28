@@ -21,7 +21,7 @@
   - [📦 Installation](#-installation)
 - [💡 Usage](#-usage)
 - [⌨️ Keyboard and Accessibility](#️-keyboard-and-accessibility)
-- [🔄 Upgrading from 3.1.x](#-upgrading-from-31x)
+- [🔄 Upgrading from 3.1.x to 4.0.0](#-upgrading-from-31x-to-400)
 - [📚 API Reference](#-api-reference)
 - [🧪 Running Tests](#-running-tests)
 - [🏗️ Project Structure](#️-project-structure)
@@ -37,7 +37,7 @@
 
 Each control supports fine-grained visual customization including background color, border, gradient fills, lighting/shadow effects, corner rounding, hover and click animations, and an animated RGB color-cycling mode. Controls also work from the keyboard, expose their role and state to screen readers, and render a grayscale look when disabled.
 
-![FC_UI Demo](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/master/resources/default_style.gif)
+![FC_UI Demo](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/v4.0.0/resources/default_style.gif)
 
 ---
 
@@ -108,7 +108,7 @@ Install-Package WinForms.FC_UI
 Or add directly to your `.csproj`:
 
 ```xml
-<PackageReference Include="WinForms.FC_UI" Version="3.1.5" />
+<PackageReference Include="WinForms.FC_UI" Version="4.0.0" />
 ```
 
 ---
@@ -159,7 +159,7 @@ globalRgb.Status = true;  // controls with Rgb = true now share one hue
 globalRgb.Status = false; // they fall back to their own RgbUpdateInterval timers
 ```
 
-👉 See the full working demo in [`examples/WinForms.FC_UI.Example/`](examples/WinForms.FC_UI.Example/).
+👉 See the full working demo in [`examples/WinForms.FC_UI.Example/`](https://github.com/0xLaileb/WinForms.FC_UI/tree/v4.0.0/examples/WinForms.FC_UI.Example).
 
 ---
 
@@ -233,9 +233,9 @@ Focused controls draw a dotted focus cue when Windows shows keyboard cues. Each 
 
 ---
 
-## 🔄 Upgrading from 3.1.x
+## 🔄 Upgrading from 3.1.x to 4.0.0
 
-Behavior that changed after 3.1.5 and may affect existing code:
+Behavior that changed in 4.0.0 and may affect existing code:
 
 - Standard events are now raised: `SizeChanged`, `Resize`, `Paint`, `MouseEnter`/`MouseLeave`/`MouseDown`/`MouseMove`/`MouseUp`/`MouseClick`. Docked and anchored children of `FGroupBox` follow its size.
 - Property setters repaint asynchronously (`Invalidate`), so several changes produce one repaint. `FProgressBar.Value` (unless `EnableValueAnimation` is on) and `FScrollBar.Value` still repaint immediately.
@@ -259,7 +259,7 @@ dotnet build WinForms.FC_UI.slnx --no-restore --configuration Release
 dotnet test WinForms.FC_UI.slnx --no-build --configuration Release --verbosity normal
 ```
 
-Tests are located in [`tests/WinForms.FC_UI.Tests/`](tests/WinForms.FC_UI.Tests/) and use **xUnit**. They cover engine utilities (HSV/RGB conversion, rounded rectangle generation, random helpers), control property validation (defaults, bounds checking, events), keyboard, mouse, and accessibility behavior, animations, layout, and render checks.
+Tests are located in [`tests/WinForms.FC_UI.Tests/`](https://github.com/0xLaileb/WinForms.FC_UI/tree/v4.0.0/tests/WinForms.FC_UI.Tests) and use **xUnit**. They cover engine utilities (HSV/RGB conversion, rounded rectangle generation, random helpers), control property validation (defaults, bounds checking, events), keyboard, mouse, and accessibility behavior, animations, layout, and render checks.
 
 To run the demo application:
 
@@ -321,19 +321,19 @@ WinForms.FC_UI/
 
 Hover and click effects, checkbox animation, scroll bar driving the progress bar, color picking, and keyboard focus cues.
 
-![Default Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/default_style.gif)
+![Default Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/v4.0.0/resources/default_style.gif)
 
 ### RGB Mode (FGlobalRgb component)
 
 All controls with `Rgb = true` cycling through one shared hue.
 
-![RGB Mode](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/rgb.gif)
+![RGB Mode](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/v4.0.0/resources/rgb.gif)
 
 ### Random Style
 
 `ControlStyle = Random` applied to every control several times.
 
-![Random Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/refs/heads/master/resources/random_style.gif)
+![Random Style](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/v4.0.0/resources/random_style.gif)
 
 ---
 
@@ -351,4 +351,4 @@ Contributions are welcome! To get started:
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](https://github.com/0xLaileb/WinForms.FC_UI/blob/v4.0.0/LICENSE).
