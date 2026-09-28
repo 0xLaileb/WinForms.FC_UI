@@ -48,6 +48,26 @@ public partial class FRichTextBox : FControlBase
         }
     }
 
+    // --- Effects ---
+
+    [Category("Effects")]
+    [Description("Highlight the border while the text field has keyboard focus")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public bool EnableFocusEffect
+    {
+        get;
+        set { field = value; Invalidate(); }
+    }
+
+    [Category("Effects")]
+    [Description("Border color used while focused (EnableFocusEffect)")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public Color FocusBorderColor
+    {
+        get;
+        set { field = value; Invalidate(); }
+    }
+
     // --- Style ---
 
     [Category("FRichTextBox")]
@@ -81,6 +101,8 @@ public partial class FRichTextBox : FControlBase
                     UseGradientBorder = false;
                     GradientBorderColor1 = Color.FromArgb(29, 200, 238);
                     GradientBorderColor2 = Color.FromArgb(37, 52, 68);
+                    EnableFocusEffect = true;
+                    FocusBorderColor = Color.FromArgb(140, 230, 250);
                     SmoothingMode = SmoothingMode.HighQuality;
                     TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
                     Font = HelpEngine.GetDefaultFont();
@@ -128,6 +150,8 @@ public partial class FRichTextBox : FControlBase
         {
             if (!_updatingDisplayText) TextChanged();
         };
+        _innerRichTextBox.GotFocus += (_, _) => Invalidate();
+        _innerRichTextBox.LostFocus += (_, _) => Invalidate();
         UpdateRichTextBox(false);
         Controls.Add(_innerRichTextBox);
 
@@ -149,7 +173,7 @@ public partial class FRichTextBox : FControlBase
         _innerRichTextBox.Location = new Point(Width / 2 - _innerRichTextBox.Size.Width / 2, Height / 2 - _innerRichTextBox.Size.Height / 2);
         if (BackgroundColor.Name != "Transparent")
             _innerRichTextBox.BackColor = BackgroundColor;
-        _innerRichTextBox.ForeColor = Color.WhiteSmoke;
+        _innerRichTextBox.ForeColor = ForeColor;
         _innerRichTextBox.BorderStyle = BorderStyle.None;
         _innerRichTextBox.Font = Font;
         _innerRichTextBox.ScrollBars = RichTextBoxScrollBars.None;
@@ -158,83 +182,22 @@ public partial class FRichTextBox : FControlBase
 
     #endregion
 
-    #region Events
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-            UpdateRichTextBox(true);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-
-        base.OnPaint(e);
-    }
-
-    #endregion
-
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    protected override void PaintControl(Graphics graphics)
     {
-        var roundingValue = CalculateRoundingValue(Height);
-        using var shapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
-        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
-        Region?.Dispose();
-        Region = new Region(regionPath);
+        var roundingValue = PrepareGeometry(Height);
 
-        // Border layer
-        Bitmap borderBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
-        {
-            if (Lighting)
-            {
-                using var shadowPath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
-                DrawEngine.DrawBlurredShadow(g, LightingColor, shadowPath, LightingAlpha, LightingWidth);
-            }
+        var focused = EnableFocusEffect && _innerRichTextBox.Focused;
+        DrawBorder(graphics, roundingValue, focused && ShowBorder ? FocusBorderColor : null);
 
-            if (BorderWidth != 0 && ShowBorder)
-            {
-                if (UseGradientBorder)
-                {
-                    using var brush = new LinearGradientBrush(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    
-                    using var pen = new Pen(brush, BorderWidth);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    
-                    g.DrawPath(pen, shapePath);
-                }
-                else
-                {
-                    using var pen = new Pen(GetRgbOrColor(BorderColor), BorderWidth);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    
-                    g.DrawPath(pen, shapePath);
-                }
-            }
-        }
-        using (borderBitmap) formGraphics.DrawImage(borderBitmap, PointF.Empty);
+        // The native text field cannot be transparent, so the frame always uses the solid BackgroundColor.
+        var state = ClipToContent(graphics, roundingValue, (int)(2 + BorderWidth));
+        using SolidBrush brush = new(BackgroundColor);
+        graphics.FillPath(brush, ShapePath);
+        graphics.Restore(state);
 
-        // Content layer
-        Bitmap contentBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
-        {
-            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
-                RegionRect.X - (int)(2 + BorderWidth),
-                RegionRect.Y - (int)(2 + BorderWidth),
-                RegionRect.Width + (int)(2 + BorderWidth) * 2,
-                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
-            using var clipRegion = new Region(clipPath);
-            g.Clip = clipRegion;
-
-            using var brush = new SolidBrush(BackgroundColor);
-            g.FillPath(brush, shapePath);
-        }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
+        UpdateRichTextBox(true);
     }
 
     #endregion

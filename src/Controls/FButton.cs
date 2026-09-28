@@ -8,14 +8,15 @@ namespace FC_UI.Controls;
 [ToolboxBitmap(typeof(Button))]
 [Description("Raises an event when clicked.")]
 [DefaultEvent("Click")]
-public partial class FButton : FControlBase
+public partial class FButton : FControlBase, IButtonControl
 {
     #region Fields
+
+    private const int ImageTextGap = 6;
 
     private Point _clickLocation;
     private readonly StringFormat _textFormat = new();
     private int _animationSize;
-    private bool _isMouseHovered;
 
     #endregion
 
@@ -29,6 +30,44 @@ public partial class FButton : FControlBase
         get;
         set { field = value; Invalidate(true); }
     } = string.Empty;
+
+    // --- Image ---
+
+    [Category("FButton")]
+    [Description("Image displayed on the button (not disposed by the button)")]
+    [DefaultValue(null)]
+    public Image? Image
+    {
+        get;
+        set { field = value; Invalidate(); }
+    }
+
+    [Category("FButton")]
+    [Description("Image size; empty uses the image size scaled down to fit the button")]
+    public Size ImageSize
+    {
+        get;
+        set
+        {
+            if (value.Width < 0 || value.Height < 0) return;
+            field = value;
+            Invalidate();
+        }
+    }
+
+    [Category("FButton")]
+    [Description("Position of the image relative to the text")]
+    [DefaultValue(TextImageRelation.ImageBeforeText)]
+    public TextImageRelation TextImageRelation
+    {
+        get;
+        set { field = value; Invalidate(); }
+    } = TextImageRelation.ImageBeforeText;
+
+    [Category("Behavior")]
+    [Description("Dialog result assigned to the parent form when the button is clicked")]
+    [DefaultValue(DialogResult.None)]
+    public DialogResult DialogResult { get; set; }
 
     // --- Effects ---
 
@@ -173,6 +212,9 @@ public partial class FButton : FControlBase
 
     public FButton()
     {
+        // Like Button: two quick clicks are two Click events, not a DoubleClick.
+        SetStyle(ControlStyles.StandardDoubleClick, false);
+
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
 
@@ -194,54 +236,93 @@ public partial class FButton : FControlBase
         base.Dispose(disposing);
     }
 
+    private bool ShouldSerializeImageSize() => !ImageSize.IsEmpty;
+
+    private void ResetImageSize() => ImageSize = Size.Empty;
+
+    #endregion
+
+    #region IButtonControl
+
+    /// <summary>
+    /// Called by the parent form when the button becomes or stops being its default (Enter) button.
+    /// </summary>
+    public void NotifyDefault(bool value)
+    {
+        // No separate look for the default button: Enter handling is done by the form.
+    }
+
+    /// <summary>
+    /// Raises <see cref="Control.Click"/> as if the user clicked the button.
+    /// </summary>
+    public void PerformClick()
+    {
+        if (!CanSelect) return;
+
+        // Like Button.PerformClick: do not click when validation of the focused control is cancelled.
+        if (Parent?.GetContainerControl() is ContainerControl container && !container.Validate()) return;
+
+        StartClickAnimation(new Point(Width / 2, Height / 2));
+        OnClick(EventArgs.Empty);
+    }
+
+    protected override void OnClick(EventArgs e)
+    {
+        if (DialogResult != DialogResult.None && FindForm() is { } form) form.DialogResult = DialogResult;
+        base.OnClick(e);
+    }
+
     #endregion
 
     #region Events
 
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-            DrawText(e.Graphics);
-
-            ShapePath.ClearMarkers();
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-
-        base.OnPaint(e);
-    }
-
-    protected override void OnMouseEnter(EventArgs e)
-    {
-        _isMouseHovered = true;
-        Refresh();
-        base.OnMouseEnter(e);
-    }
-
     protected override void OnMouseLeave(EventArgs e)
     {
         _clickAnimationTimer.Stop();
-        _isMouseHovered = false;
         _animationSize = 0;
-        Refresh();
         base.OnMouseLeave(e);
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
     {
-        _clickAnimationTimer.Stop();
-
-        if (e.Button == MouseButtons.Left && EnableClickEffect)
-        {
-            _clickLocation = e.Location;
-            _animationSize = 2;
-            _clickAnimationTimer.Start();
-        }
-
+        if (e.Button == MouseButtons.Left) StartClickAnimation(e.Location);
         base.OnMouseUp(e);
     }
+
+    // A focused button handles Enter itself; FButton is a ContainerControl, so the form would not make it the default button.
+    protected override bool IsInputKey(Keys keyData) => keyData == Keys.Enter || base.IsInputKey(keyData);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None)
+        {
+            PerformClick();
+            e.Handled = true;
+        }
+        base.OnKeyDown(e);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Space && e.Modifiers == Keys.None)
+        {
+            PerformClick();
+            e.Handled = true;
+        }
+        base.OnKeyUp(e);
+    }
+
+    #endregion
+
+    #region Accessibility
+
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.PushButton;
+
+    protected override string? AccessibleText => DisplayText;
+
+    protected override string AccessibleDefaultActionText => "Press";
+
+    protected override void DoAccessibleDefaultAction() => PerformClick();
 
     #endregion
 
@@ -250,6 +331,16 @@ public partial class FButton : FControlBase
     internal bool IsClickAnimationRunning => _clickAnimationTimer.Enabled;
 
     private int ClickAnimationMaxSize => Math.Max(ControlSize.Width, ControlSize.Height) * 2;
+
+    private void StartClickAnimation(Point location)
+    {
+        _clickAnimationTimer.Stop();
+        if (!EnableClickEffect) return;
+
+        _clickLocation = location;
+        _animationSize = 2;
+        _clickAnimationTimer.Start();
+    }
 
     internal void StepClickAnimation()
     {
@@ -265,66 +356,111 @@ public partial class FButton : FControlBase
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    protected override void PaintControl(Graphics graphics)
     {
         var roundingValue = PrepareGeometry(Height);
 
-        using var borderLayer = RenderBorderLayer(roundingValue);
-        formGraphics.DrawImage(borderLayer, PointF.Empty);
+        DrawBorder(graphics, roundingValue);
 
-        // Content layer with effects
-        using Bitmap contentBitmap = new(Width, Height);
-        using (var graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
-        {
-            const int offset = 1;
-            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
-                RegionRect.X - offset,
-                RegionRect.Y - offset,
-                RegionRect.Width + offset * 2,
-                RegionRect.Height + offset * 2), Rounding ? roundingValue : 0.1F);
-            using Region clipRegion = new(clipPath);
-            graphics.Clip = clipRegion;
+        var state = ClipToContent(graphics, roundingValue, 1);
+        FillBackground(graphics);
+        if (EnableClickEffect) DrawClickAnimation(graphics);
+        if (EnableHoverEffect && IsHovered) DrawHoverOverlay(graphics);
+        graphics.Restore(state);
 
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    graphics.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    graphics.FillPath(brush, ShapePath);
-                }
-            }
-
-            if (EnableClickEffect) DrawClickAnimation(graphics);
-            if (EnableHoverEffect && _isMouseHovered) DrawHoverOverlay(graphics);
-        }
-        formGraphics.DrawImage(contentBitmap, PointF.Empty);
+        DrawContent(graphics);
+        DrawInnerFocusCue(graphics, roundingValue);
     }
 
-    private void DrawText(Graphics graphics)
+    private void DrawContent(Graphics graphics)
     {
         using SolidBrush brush = new(ForeColor);
-        graphics.DrawString(DisplayText, Font, brush, RegionRect, _textFormat);
+
+        if (Image is null)
+        {
+            graphics.DrawString(DisplayText, Font, brush, RegionRect, _textFormat);
+            return;
+        }
+
+        var bounds = Rectangle.Inflate(RegionRect, -6, -4);
+        var textSize = string.IsNullOrEmpty(DisplayText) ? SizeF.Empty : graphics.MeasureString(DisplayText, Font);
+        var imageSize = ResolveImageSize(bounds);
+        var (imageBounds, textBounds) = LayoutImageAndText(bounds, imageSize, textSize, TextImageRelation,
+            textSize.IsEmpty ? 0 : ImageTextGap);
+
+        var state = graphics.Save();
+        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        graphics.DrawImage(Image, imageBounds);
+        graphics.Restore(state);
+
+        if (!textSize.IsEmpty) graphics.DrawString(DisplayText, Font, brush, textBounds, _textFormat);
+    }
+
+    private Size ResolveImageSize(Rectangle bounds)
+    {
+        if (!ImageSize.IsEmpty) return ImageSize;
+        if (Image is null || Image.Width <= 0 || Image.Height <= 0) return Size.Empty;
+
+        var scale = Math.Min(1F, Math.Min((float)bounds.Width / Image.Width, (float)bounds.Height / Image.Height));
+        return new Size(Math.Max(1, (int)(Image.Width * scale)), Math.Max(1, (int)(Image.Height * scale)));
+    }
+
+    /// <summary>
+    /// Places the image and the text inside <paramref name="bounds"/>, centering the combined block.
+    /// </summary>
+    internal static (Rectangle Image, RectangleF Text) LayoutImageAndText(
+        Rectangle bounds, Size imageSize, SizeF textSize, TextImageRelation relation, int gap)
+    {
+        var centerX = bounds.X + bounds.Width / 2F;
+        var centerY = bounds.Y + bounds.Height / 2F;
+
+        switch (relation)
+        {
+            case TextImageRelation.ImageBeforeText:
+            case TextImageRelation.TextBeforeImage:
+            {
+                var textWidth = Math.Min(textSize.Width, Math.Max(0, bounds.Width - imageSize.Width - gap));
+                var left = centerX - (imageSize.Width + gap + textWidth) / 2;
+                var imageFirst = relation == TextImageRelation.ImageBeforeText;
+                var imageX = imageFirst ? left : left + textWidth + gap;
+                var textX = imageFirst ? left + imageSize.Width + gap : left;
+                return (
+                    new Rectangle((int)imageX, (int)(centerY - imageSize.Height / 2F), imageSize.Width, imageSize.Height),
+                    new RectangleF(textX, bounds.Y, textWidth, bounds.Height));
+            }
+            case TextImageRelation.ImageAboveText:
+            case TextImageRelation.TextAboveImage:
+            {
+                var textHeight = Math.Min(textSize.Height, Math.Max(0, bounds.Height - imageSize.Height - gap));
+                var top = centerY - (imageSize.Height + gap + textHeight) / 2;
+                var imageFirst = relation == TextImageRelation.ImageAboveText;
+                var imageY = imageFirst ? top : top + textHeight + gap;
+                var textY = imageFirst ? top + imageSize.Height + gap : top;
+                return (
+                    new Rectangle((int)(centerX - imageSize.Width / 2F), (int)imageY, imageSize.Width, imageSize.Height),
+                    new RectangleF(bounds.X, textY, bounds.Width, textHeight));
+            }
+            default:
+                return (
+                    new Rectangle((int)(centerX - imageSize.Width / 2F), (int)(centerY - imageSize.Height / 2F),
+                        imageSize.Width, imageSize.Height),
+                    bounds);
+        }
     }
 
     private void DrawClickAnimation(Graphics graphics)
     {
-        if (_animationSize < ClickAnimationMaxSize)
-        {
-            Rectangle circleRect = new(
-                _clickLocation.X - _animationSize / 2,
-                _clickLocation.Y - _animationSize / 2,
-                _animationSize, _animationSize);
+        if (_animationSize >= ClickAnimationMaxSize) return;
 
-            if (circleRect is { Width: > 0, Height: > 0 })
-            {
-                using SolidBrush brush = new(Color.FromArgb(ClickEffectOpacity, ClickEffectColor));
-                graphics.FillEllipse(brush, circleRect);
-            }
+        Rectangle circleRect = new(
+            _clickLocation.X - _animationSize / 2,
+            _clickLocation.Y - _animationSize / 2,
+            _animationSize, _animationSize);
+
+        if (circleRect is { Width: > 0, Height: > 0 })
+        {
+            using SolidBrush brush = new(Color.FromArgb(ClickEffectOpacity, ClickEffectColor));
+            graphics.FillEllipse(brush, circleRect);
         }
     }
 

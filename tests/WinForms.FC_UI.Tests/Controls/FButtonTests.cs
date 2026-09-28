@@ -248,6 +248,154 @@ public class FButtonTests : IDisposable
     {
         public void InvokeMouseUp(MouseButtons button) =>
             OnMouseUp(new MouseEventArgs(button, 1, 10, 10, 0));
+
+        public void InvokeKeyUp(Keys key) => OnKeyUp(new KeyEventArgs(key));
+
+        public void InvokeClick() => OnClick(EventArgs.Empty);
+
+        public void InvokeKeyDown(Keys key) => OnKeyDown(new KeyEventArgs(key));
+
+        public bool IsInput(Keys key) => IsInputKey(key);
+    }
+
+    #endregion
+
+    #region Button Behavior Tests
+
+    [Fact]
+    public void PerformClick_Enabled_RaisesClick()
+    {
+        var clicks = 0;
+        _button.Click += (_, _) => clicks++;
+
+        _button.PerformClick();
+
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void PerformClick_Disabled_DoesNotRaiseClick()
+    {
+        var clicks = 0;
+        _button.Click += (_, _) => clicks++;
+        _button.Enabled = false;
+
+        _button.PerformClick();
+
+        Assert.Equal(0, clicks);
+    }
+
+    [Fact]
+    public void SpaceKeyUp_Focusable_RaisesClick()
+    {
+        using ClickableFButton button = new();
+        var clicks = 0;
+        button.Click += (_, _) => clicks++;
+
+        button.InvokeKeyUp(Keys.Space);
+
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void EnterKeyDown_Focusable_RaisesClick()
+    {
+        using ClickableFButton button = new();
+        var clicks = 0;
+        button.Click += (_, _) => clicks++;
+
+        button.InvokeKeyDown(Keys.Enter);
+
+        Assert.Equal(1, clicks);
+        Assert.True(button.IsInput(Keys.Enter));
+    }
+
+    [Fact]
+    public void Click_DialogResultSet_AssignsFormDialogResult()
+    {
+        using Form form = new();
+        ClickableFButton button = new() { DialogResult = DialogResult.OK };
+        form.Controls.Add(button);
+
+        button.InvokeClick();
+
+        Assert.Equal(DialogResult.OK, form.DialogResult);
+    }
+
+    [Fact]
+    public void AcceptButton_FButton_IsAccepted()
+    {
+        using Form form = new();
+        FButton button = new();
+        form.Controls.Add(button);
+
+        form.AcceptButton = button;
+
+        Assert.Same(button, form.AcceptButton);
+    }
+
+    [Fact]
+    public void AccessibilityObject_Default_ReportsPushButtonWithText()
+    {
+        var accessible = _button.AccessibilityObject;
+
+        Assert.Equal(AccessibleRole.PushButton, accessible.Role);
+        Assert.Equal("FButton", accessible.Name);
+    }
+
+    #endregion
+
+    #region Image Tests
+
+    [Fact]
+    public void TextImageRelation_Default_IsImageBeforeText()
+    {
+        Assert.Equal(TextImageRelation.ImageBeforeText, _button.TextImageRelation);
+        Assert.Null(_button.Image);
+    }
+
+    [Theory]
+    [InlineData(TextImageRelation.ImageBeforeText)]
+    [InlineData(TextImageRelation.TextBeforeImage)]
+    [InlineData(TextImageRelation.ImageAboveText)]
+    [InlineData(TextImageRelation.TextAboveImage)]
+    public void LayoutImageAndText_Relation_KeepsImageAndTextApartAndInside(TextImageRelation relation)
+    {
+        Rectangle bounds = new(0, 0, 200, 100);
+
+        var (image, text) = FButton.LayoutImageAndText(bounds, new Size(20, 20), new SizeF(60, 14), relation, 6);
+
+        Assert.True(bounds.Contains(image));
+        switch (relation)
+        {
+            case TextImageRelation.ImageBeforeText: Assert.True(image.Right <= text.Left); break;
+            case TextImageRelation.TextBeforeImage: Assert.True(text.Right <= image.Left); break;
+            case TextImageRelation.ImageAboveText: Assert.True(image.Bottom <= text.Top); break;
+            case TextImageRelation.TextAboveImage: Assert.True(text.Bottom <= image.Top); break;
+        }
+    }
+
+    [Fact]
+    public void LayoutImageAndText_Overlay_CentersImage()
+    {
+        var (image, _) = FButton.LayoutImageAndText(
+            new Rectangle(0, 0, 200, 100), new Size(20, 20), new SizeF(60, 14), TextImageRelation.Overlay, 6);
+
+        Assert.Equal(new Rectangle(90, 40, 20, 20), image);
+    }
+
+    [Fact]
+    public void DrawToBitmap_WithImage_DrawsImagePixels()
+    {
+        using Bitmap icon = new(16, 16);
+        using (var g = Graphics.FromImage(icon)) g.Clear(Color.Lime);
+        _button.Image = icon;
+        _button.DisplayText = string.Empty;
+
+        using Bitmap bitmap = new(_button.Width, _button.Height);
+        _button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, _button.Size));
+
+        Assert.Equal(Color.Lime.ToArgb(), bitmap.GetPixel(_button.Width / 2, _button.Height / 2).ToArgb());
     }
 
     #endregion

@@ -233,6 +233,138 @@ public class FScrollBarTests : IDisposable
     }
 
     [Fact]
+    public void DesignerLoad_HorizontalBarWithSmallRadius_KeepsSerializedValues()
+    {
+        // Designer code wraps the property assignments in BeginInit/EndInit.
+        _scrollBar.BeginInit();
+        _scrollBar.CornerRadius = 5;
+        _scrollBar.Orientation = Orientation.Horizontal;
+        _scrollBar.Size = new Size(350, 30);
+        _scrollBar.EndInit();
+
+        Assert.Equal(5, _scrollBar.CornerRadius);
+        Assert.Equal(new Size(350, 30), _scrollBar.Size);
+        Assert.Equal(Orientation.Horizontal, _scrollBar.Orientation);
+    }
+
+    [Theory]
+    [InlineData(Keys.Down, 51)]
+    [InlineData(Keys.Right, 51)]
+    [InlineData(Keys.Up, 49)]
+    [InlineData(Keys.PageDown, 60)]
+    [InlineData(Keys.PageUp, 40)]
+    [InlineData(Keys.Home, 0)]
+    [InlineData(Keys.End, 100)]
+    public void KeyDown_NavigationKey_ChangesValue(Keys key, int expected)
+    {
+        using TestScrollBar scrollBar = new() { Value = 50 };
+
+        scrollBar.InvokeKeyDown(key);
+
+        Assert.Equal(expected, scrollBar.Value);
+    }
+
+    [Fact]
+    public void MouseWheel_ScrollDown_IncreasesValueBySystemLines()
+    {
+        using TestScrollBar scrollBar = new() { Value = 50 };
+
+        scrollBar.InvokeMouseWheel(-SystemInformation.MouseWheelScrollDelta);
+
+        var lines = SystemInformation.MouseWheelScrollLines;
+        Assert.Equal(Math.Min(100, 50 + (lines > 0 ? lines : 10)), scrollBar.Value);
+    }
+
+    [Fact]
+    public void MouseWheel_FractionalDeltas_AccumulateToOneNotch()
+    {
+        using TestScrollBar scrollBar = new() { Value = 50 };
+        var quarter = SystemInformation.MouseWheelScrollDelta / 4;
+
+        for (var i = 0; i < 3; i++) scrollBar.InvokeMouseWheel(-quarter);
+        Assert.Equal(50, scrollBar.Value);
+        scrollBar.InvokeMouseWheel(-quarter);
+
+        Assert.True(scrollBar.Value > 50);
+    }
+
+    [Fact]
+    public void MouseWheel_HandledArgs_MarksEventHandled()
+    {
+        using TestScrollBar scrollBar = new() { Value = 50 };
+        HandledMouseEventArgs args = new(MouseButtons.None, 0, 5, 5, -SystemInformation.MouseWheelScrollDelta);
+
+        scrollBar.InvokeMouseWheel(args);
+
+        Assert.True(args.Handled);
+    }
+
+    [Fact]
+    public void MouseDrag_GrabbedThumb_KeepsGrabOffset()
+    {
+        using TestScrollBar scrollBar = new();
+        var thumb = scrollBar.GetThumbBounds();
+        Point grab = new(thumb.X + thumb.Width / 2, thumb.Y + thumb.Height / 2);
+
+        scrollBar.InvokeMouseDown(grab);
+        Assert.Equal(0, scrollBar.Value);
+
+        var track = scrollBar.Height - 2 * (int)scrollBar.BorderWidth - scrollBar.ThumbSize;
+        scrollBar.InvokeMouseMove(grab with { Y = grab.Y + track / 2 });
+
+        Assert.Equal(50, scrollBar.Value);
+    }
+
+    [Fact]
+    public void MouseDrag_BeyondTrack_ClampsToMaximum()
+    {
+        using TestScrollBar scrollBar = new();
+        var thumb = scrollBar.GetThumbBounds();
+
+        scrollBar.InvokeMouseDown(new Point(thumb.X + 2, thumb.Y + 2));
+        scrollBar.InvokeMouseMove(new Point(thumb.X + 2, 5000));
+
+        Assert.Equal(100, scrollBar.Value);
+    }
+
+    [Fact]
+    public void GetThumbBounds_ValueAtMaximum_TouchesTrackEnd()
+    {
+        _scrollBar.Value = _scrollBar.Maximum;
+
+        var thumb = _scrollBar.GetThumbBounds();
+
+        Assert.Equal(_scrollBar.Height - (int)_scrollBar.BorderWidth, thumb.Bottom);
+    }
+
+    [Fact]
+    public void AccessibilityObject_Value_ReportsScrollBarAndValue()
+    {
+        _scrollBar.Value = 42;
+
+        var accessible = _scrollBar.AccessibilityObject;
+
+        Assert.Equal(AccessibleRole.ScrollBar, accessible.Role);
+        Assert.Equal("42", accessible.Value);
+    }
+
+    private sealed class TestScrollBar : FScrollBar
+    {
+        public void InvokeKeyDown(Keys key) => OnKeyDown(new KeyEventArgs(key));
+
+        public void InvokeMouseWheel(int delta) =>
+            OnMouseWheel(new MouseEventArgs(MouseButtons.None, 0, 5, 5, delta));
+
+        public void InvokeMouseWheel(MouseEventArgs args) => OnMouseWheel(args);
+
+        public void InvokeMouseDown(Point point) =>
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, point.X, point.Y, 0));
+
+        public void InvokeMouseMove(Point point) =>
+            OnMouseMove(new MouseEventArgs(MouseButtons.Left, 0, point.X, point.Y, 0));
+    }
+
+    [Fact]
     public void Tag_IsSetToFC_UI()
     {
         Assert.Equal("FC_UI", _scrollBar.Tag);

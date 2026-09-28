@@ -7,11 +7,15 @@ namespace FC_UI.Controls;
 [ToolboxBitmap(typeof(VScrollBar))]
 [Description("Provides horizontal/vertical content scrolling capability (use event subscription).")]
 [DefaultEvent("ValueChanged")]
-public partial class FScrollBar : FControlBase
+public partial class FScrollBar : FControlBase, ISupportInitialize
 {
     #region Fields
 
-    private Rectangle _thumbRect;
+    private bool _initializing;
+    private bool _isDragging;
+    private int _dragOffset;
+    private bool _isThumbHovered;
+    private int _wheelDelta;
 
     #endregion
 
@@ -32,6 +36,7 @@ public partial class FScrollBar : FControlBase
             var clampedValue = Math.Clamp(value, Minimum, Maximum);
             if (field == clampedValue) return;
             field = clampedValue;
+            AccessibilityNotifyClients(AccessibleEvents.ValueChange, -1);
             Refresh();
             OnScroll();
         }
@@ -45,26 +50,34 @@ public partial class FScrollBar : FControlBase
         get;
         set
         {
-            // Re-applying the current orientation must not swap the size or rescale the radius again
-            // (the designer assigns Orientation on every load).
+            // Re-applying the current orientation must not swap the size or rescale the radius again.
             if (field == value) return;
             field = value;
 
-            Size = new Size(Size.Height, Size.Width);
-            if (CornerRadius != 0)
+            // Designer code restores the final Size and CornerRadius itself (between BeginInit and EndInit).
+            if (!_initializing)
             {
-                // CornerRadius is a percentage of the height, which changes with the orientation.
-                // Out-of-range results are ignored by the CornerRadius setter.
-                CornerRadius = value == Orientation.Vertical ? CornerRadius / 10 : CornerRadius * 10;
+                Size = new Size(Size.Height, Size.Width);
+                if (CornerRadius != 0)
+                {
+                    // CornerRadius is a percentage of the height, which changes with the orientation.
+                    // Out-of-range results are ignored by the CornerRadius setter.
+                    CornerRadius = value == Orientation.Vertical ? CornerRadius / 10 : CornerRadius * 10;
+                }
             }
             Invalidate(true);
         }
     }
 
     [Category("Value")]
-    [Description("Scroll step amount")]
+    [Description("Value change for arrow keys and the mouse wheel")]
     [DefaultValue(1)]
     public int SmallStep { get; set; }
+
+    [Category("Value")]
+    [Description("Value change for Page Up / Page Down")]
+    [DefaultValue(10)]
+    public int LargeStep { get; set; } = 10;
 
     [Category("Value")]
     [Description("Thumb size")]
@@ -134,6 +147,31 @@ public partial class FScrollBar : FControlBase
         }
     }
 
+    // --- Effects ---
+
+    [Category("Effects")]
+    [Description("Highlight the thumb while it is hovered or dragged")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public bool EnableHoverEffect
+    {
+        get;
+        set { field = value; Invalidate(); }
+    }
+
+    [Category("Effects")]
+    [Description("Hover effect opacity (1-255)")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public int HoverEffectOpacity
+    {
+        get;
+        set { if (value is > 0 and <= 255) field = value; }
+    }
+
+    [Category("Effects")]
+    [Description("Hover effect color")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public Color HoverEffectColor { get; set; }
+
     // --- Gradient Fill ---
 
     [Category("LinearGradient")]
@@ -187,6 +225,7 @@ public partial class FScrollBar : FControlBase
                     Maximum = 100;
                     ThumbSize = 60;
                     SmallStep = 1;
+                    LargeStep = 10;
                     Rgb = false;
                     ShowBackground = true;
                     ShowBorder = true;
@@ -211,6 +250,9 @@ public partial class FScrollBar : FControlBase
                     UseGradientFill = false;
                     GradientFillColor1 = Color.FromArgb(28, 200, 238);
                     GradientFillColor2 = Color.FromArgb(100, 208, 232);
+                    EnableHoverEffect = true;
+                    HoverEffectOpacity = 50;
+                    HoverEffectColor = Color.White;
                     SmoothingMode = SmoothingMode.HighQuality;
                     TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
                     break;
@@ -261,30 +303,27 @@ public partial class FScrollBar : FControlBase
 
     public FScrollBar()
     {
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
-        DoubleBuffered = true;
-
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
 
         UpdateGeometry();
     }
 
+    /// <summary>
+    /// Suspends the automatic size swap and corner-radius scaling of <see cref="Orientation"/> while designer code loads.
+    /// </summary>
+    public void BeginInit() => _initializing = true;
+
+    public void EndInit()
+    {
+        _initializing = false;
+        UpdateGeometry();
+        Invalidate(true);
+    }
+
     #endregion
 
     #region Events
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-
-        base.OnPaint(e);
-    }
 
     public virtual void OnScroll(ScrollEventType type = ScrollEventType.ThumbPosition)
     {
@@ -293,141 +332,172 @@ public partial class FScrollBar : FControlBase
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left) HandleMouseScroll(e);
+        if (e.Button == MouseButtons.Left)
+        {
+            Focus();
+            var thumb = GetThumbBounds();
+            var position = AxisPosition(e.Location);
+            var thumbStart = Orientation == Orientation.Vertical ? thumb.Y : thumb.X;
+
+            // Grabbing the thumb keeps the grab point under the cursor; clicking the track centers the thumb there.
+            _dragOffset = thumb.Contains(e.Location) ? position - thumbStart : ThumbSize / 2;
+            _isDragging = true;
+            ScrollToPosition(position);
+        }
         base.OnMouseDown(e);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left) HandleMouseScroll(e);
+        if (_isDragging && e.Button == MouseButtons.Left) ScrollToPosition(AxisPosition(e.Location));
+
+        var thumbHovered = GetThumbBounds().Contains(e.Location);
+        if (thumbHovered != _isThumbHovered)
+        {
+            _isThumbHovered = thumbHovered;
+            Invalidate();
+        }
         base.OnMouseMove(e);
     }
 
-    private void HandleMouseScroll(MouseEventArgs e)
+    protected override void OnMouseUp(MouseEventArgs e)
     {
-        var newValue = Value;
-        var valueRange = Maximum - Minimum;
-        if (valueRange <= 0) return;
-
-        switch (Orientation)
-        {
-            case Orientation.Vertical:
-                if (e.Y < 0) newValue -= SmallStep;
-                else if (e.Y > RegionRect.Height) newValue += SmallStep;
-                else
-                {
-                    var range = RegionRect.Height - ThumbSize;
-                    if (range > 0) newValue = Minimum + valueRange * (e.Y - ThumbSize / 2) / range;
-                }
-                break;
-            case Orientation.Horizontal:
-                if (e.X < 0) newValue -= SmallStep;
-                else if (e.X > RegionRect.Width) newValue += SmallStep;
-                else
-                {
-                    var range = RegionRect.Width - ThumbSize;
-                    if (range > 0) newValue = Minimum + valueRange * (e.X - ThumbSize / 2) / range;
-                }
-                break;
-        }
-        Value = Math.Clamp(newValue, Minimum, Maximum);
+        if (e.Button == MouseButtons.Left) _isDragging = false;
+        base.OnMouseUp(e);
     }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        _isThumbHovered = false;
+        base.OnMouseLeave(e);
+    }
+
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        // Touchpads and high-resolution wheels send fractions of a notch; accumulate them.
+        _wheelDelta += e.Delta;
+        var notches = _wheelDelta / SystemInformation.MouseWheelScrollDelta;
+        if (notches != 0)
+        {
+            _wheelDelta -= notches * SystemInformation.MouseWheelScrollDelta;
+            var lines = SystemInformation.MouseWheelScrollLines;
+            var step = lines > 0 ? SmallStep * lines : LargeStep;
+            ChangeValue(-(long)notches * step);
+        }
+
+        // Keep the parent (for example an AutoScroll panel) from scrolling as well.
+        if (e is HandledMouseEventArgs handled) handled.Handled = true;
+        base.OnMouseWheel(e);
+    }
+
+    protected override bool IsInputKey(Keys keyData) => keyData switch
+    {
+        Keys.Up or Keys.Down or Keys.Left or Keys.Right or Keys.PageUp or Keys.PageDown or Keys.Home or Keys.End => true,
+        _ => base.IsInputKey(keyData)
+    };
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Modifiers == Keys.None)
+        {
+            e.Handled = true;
+            switch (e.KeyCode)
+            {
+                case Keys.Up or Keys.Left: ChangeValue(-SmallStep); break;
+                case Keys.Down or Keys.Right: ChangeValue(SmallStep); break;
+                case Keys.PageUp: ChangeValue(-LargeStep); break;
+                case Keys.PageDown: ChangeValue(LargeStep); break;
+                case Keys.Home: Value = Minimum; break;
+                case Keys.End: Value = Maximum; break;
+                default: e.Handled = false; break;
+            }
+        }
+        base.OnKeyDown(e);
+    }
+
+    private void ChangeValue(long delta)
+    {
+        Value = (int)Math.Clamp(Value + delta, Minimum, Maximum);
+    }
+
+    private int AxisPosition(Point point) => Orientation == Orientation.Vertical ? point.Y : point.X;
+
+    private void ScrollToPosition(int position)
+    {
+        var trackStart = Orientation == Orientation.Vertical ? RegionRect.Y : RegionRect.X;
+        var trackLength = (Orientation == Orientation.Vertical ? RegionRect.Height : RegionRect.Width) - ThumbSize;
+        if (trackLength <= 0) return;
+
+        var offset = Math.Clamp(position - _dragOffset - trackStart, 0, trackLength);
+        Value = (int)(Minimum + (long)(Maximum - Minimum) * offset / trackLength);
+    }
+
+    #endregion
+
+    #region Accessibility
+
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.ScrollBar;
+
+    protected override string AccessibleValueText => Value.ToString();
 
     #endregion
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    /// <summary>
+    /// Thumb bounds in client coordinates.
+    /// </summary>
+    internal Rectangle GetThumbBounds()
+    {
+        var valueRange = Maximum - Minimum;
+        var valueOffset = (long)(Value - Minimum);
+
+        if (Orientation == Orientation.Vertical)
+        {
+            var track = RegionRect.Height - ThumbSize;
+            var y = track > 0 && valueRange > 0 ? (int)(valueOffset * track / valueRange) : 0;
+            return new Rectangle(RegionRect.X, RegionRect.Y + y, RegionRect.Width, ThumbSize);
+        }
+
+        var hTrack = RegionRect.Width - ThumbSize;
+        var x = hTrack > 0 && valueRange > 0 ? (int)(valueOffset * hTrack / valueRange) : 0;
+        return new Rectangle(RegionRect.X + x, RegionRect.Y, ThumbSize, RegionRect.Height);
+    }
+
+    protected override void PaintControl(Graphics graphics)
     {
         var roundingValue = PrepareGeometry(Height);
 
-        // Border layer
-        using var borderLayer = RenderBorderLayer(roundingValue);
-        formGraphics.DrawImage(borderLayer, PointF.Empty);
+        DrawBorder(graphics, roundingValue);
 
-        // Content layer
-        Bitmap contentBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
-        {
-            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
-                RegionRect.X - (int)(2 + BorderWidth),
-                RegionRect.Y - (int)(2 + BorderWidth),
-                RegionRect.Width + (int)(2 + BorderWidth) * 2,
-                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
-            using Region clipRegion = new(clipPath);
-            g.Clip = clipRegion;
+        var state = ClipToContent(graphics, roundingValue, (int)(2 + BorderWidth));
+        FillBackground(graphics);
+        DrawThumb(graphics, roundingValue);
+        graphics.Restore(state);
 
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, ShapePath);
-                }
-            }
-
-            DrawThumb(g, roundingValue);
-        }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
+        DrawInnerFocusCue(graphics, roundingValue);
     }
 
     private void DrawThumb(Graphics graphics, float roundingValue)
     {
-        var valueRange = Maximum - Minimum;
-        if (valueRange <= 0) return;
-        _thumbRect = new Rectangle(2, 2, RegionRect.Width, ThumbSize);
-        var valueOffset = Value - Minimum;
-
-        switch (Orientation)
-        {
-            case Orientation.Vertical:
-            {
-                var vRange = RegionRect.Height - ThumbSize;
-                _thumbRect = new Rectangle(
-                    RegionRect.X,
-                    RegionRect.Y + (vRange > 0 ? valueOffset * vRange / valueRange : 0),
-                    RegionRect.Width,
-                    ThumbSize);
-                break;
-            }
-            case Orientation.Horizontal:
-            {
-                var hRange = RegionRect.Width - ThumbSize;
-                _thumbRect = new Rectangle(
-                    RegionRect.X + (hRange > 0 ? valueOffset * hRange / valueRange : 0),
-                    RegionRect.Y,
-                    ThumbSize,
-                    RegionRect.Height);
-                break;
-            }
-        }
+        if (Maximum - Minimum <= 0) return;
 
         const int offset = 1;
-        _thumbRect.X -= offset;
-        _thumbRect.Y -= offset;
-        _thumbRect.Width += offset * 2;
-        _thumbRect.Height += offset * 2;
-        roundingValue += offset * 2;
+        var thumbRect = Rectangle.Inflate(GetThumbBounds(), offset, offset);
+        using var thumbPath = DrawEngine.CreateRoundedPath(thumbRect, roundingValue + offset * 2);
 
-        using var thumbPath = DrawEngine.CreateRoundedPath(_thumbRect, roundingValue);
-
-        if (UseGradientFill)
-        {
-            using LinearGradientBrush brush = new(RegionRect,
+        using Brush brush = UseGradientFill
+            ? new LinearGradientBrush(RegionRect,
                 Color.FromArgb(ThumbOpacity, GetRgbOrColor(GradientFillColor1)),
                 Color.FromArgb(ThumbOpacity, Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2),
-                360);
-            graphics.FillPath(brush, thumbPath);
-        }
-        else
+                360)
+            : new SolidBrush(Color.FromArgb(ThumbOpacity, GetRgbOrColor(ThumbColor)));
+        graphics.FillPath(brush, thumbPath);
+
+        if (EnableHoverEffect && (_isThumbHovered || _isDragging))
         {
-            using SolidBrush brush = new(Color.FromArgb(ThumbOpacity, GetRgbOrColor(ThumbColor)));
-            graphics.FillPath(brush, thumbPath);
+            using SolidBrush hoverBrush = new(Color.FromArgb(HoverEffectOpacity, HoverEffectColor));
+            graphics.FillPath(hoverBrush, thumbPath);
         }
     }
 

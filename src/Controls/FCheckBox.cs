@@ -11,11 +11,13 @@ public partial class FCheckBox : FControlBase
 {
     #region Fields
 
+    // Geometry is designed for the default 45 px height and scaled proportionally to Height.
+    private const int DesignHeight = 45;
+    private const int DesignBoxSize = 21;
+    private const int DesignEffectSize = 40;
+
     private int _animationSize;
-    private bool _isMouseHovered;
-    private Size _checkboxSize;
-    private const int ClickAnimationMaxSize = 40;
-    private const int FixedHeight = 45;
+    private float _scale = 1F;
 
     #endregion
 
@@ -38,6 +40,7 @@ public partial class FCheckBox : FControlBase
             if (field == value) return;
             field = value;
             CheckedChanged();
+            AccessibilityNotifyClients(AccessibleEvents.StateChange, -1);
             Invalidate(true);
         }
     }
@@ -156,6 +159,10 @@ public partial class FCheckBox : FControlBase
                     HoverEffectColor = Color.White;
                     ClickEffectInterval = 1;
                     RgbUpdateInterval = 300;
+                    Lighting = false;
+                    LightingColor = Color.FromArgb(29, 200, 238);
+                    LightingAlpha = 50;
+                    LightingWidth = 10;
                     UseGradientBackground = false;
                     GradientColor1 = Color.FromArgb(37, 52, 68);
                     GradientColor2 = Color.FromArgb(41, 63, 86);
@@ -180,6 +187,8 @@ public partial class FCheckBox : FControlBase
                         BorderColor = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                         ColorChecked = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                     }
+                    Lighting = HelpEngine.RandomBool();
+                    if (Lighting) LightingColor = HelpEngine.RandomColor();
                     UseGradientBackground = HelpEngine.RandomBool();
                     if (UseGradientBackground)
                     {
@@ -225,7 +234,7 @@ public partial class FCheckBox : FControlBase
         get
         {
             var cp = base.CreateParams;
-            cp.ExStyle |= 0x02000000; // WS_CLIPCHILDREN
+            cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED
             return cp;
         }
     }
@@ -234,23 +243,27 @@ public partial class FCheckBox : FControlBase
 
     #region Events
 
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-            DrawText(e.Graphics);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-
-        base.OnPaint(e);
-    }
-
     protected override void OnMouseClick(MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left) ToggleChecked();
         base.OnMouseClick(e);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Space && e.Modifiers == Keys.None)
+        {
+            ToggleChecked();
+            e.Handled = true;
+        }
+        base.OnKeyUp(e);
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        _clickAnimationTimer.Stop();
+        _animationSize = 0;
+        base.OnMouseLeave(e);
     }
 
     private void ToggleChecked()
@@ -258,39 +271,31 @@ public partial class FCheckBox : FControlBase
         Checked = !Checked;
 
         _clickAnimationTimer.Stop();
-
-        _animationSize = _checkboxSize.Width;
+        _animationSize = RegionRect.Width;
         if (Checked) _clickAnimationTimer.Start();
-        else Refresh();
-    }
-
-    protected override void OnMouseEnter(EventArgs e)
-    {
-        _isMouseHovered = true;
-        Refresh();
-        base.OnMouseEnter(e);
-    }
-
-    protected override void OnMouseLeave(EventArgs e)
-    {
-        _clickAnimationTimer.Stop();
-        _isMouseHovered = false;
-        _animationSize = 0;
-        Refresh();
-        base.OnMouseLeave(e);
-    }
-
-    protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
-    {
-        // The height is fixed; clamping here avoids a nested resize (and duplicate SizeChanged events).
-        base.SetBoundsCore(x, y, width, FixedHeight, specified);
     }
 
     protected override void UpdateGeometry()
     {
-        _checkboxSize = new Size(21, 21);
-        RegionRect = new Rectangle(15, Size.Height / 2 - 12, _checkboxSize.Width, _checkboxSize.Height);
+        _scale = Math.Max(0.4F, (float)Height / DesignHeight);
+        var boxSize = Math.Max(8, (int)Math.Round(DesignBoxSize * _scale));
+        RegionRect = new Rectangle((int)Math.Round(15 * _scale), Height / 2 - (boxSize + 3) / 2, boxSize, boxSize);
+        ControlSize = RegionRect.Size;
     }
+
+    #endregion
+
+    #region Accessibility
+
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.CheckButton;
+
+    protected override string? AccessibleText => DisplayText;
+
+    protected override AccessibleStates AccessibleStateFlags => Checked ? AccessibleStates.Checked : AccessibleStates.None;
+
+    protected override string AccessibleDefaultActionText => Checked ? "Uncheck" : "Check";
+
+    protected override void DoAccessibleDefaultAction() => ToggleChecked();
 
     #endregion
 
@@ -298,9 +303,11 @@ public partial class FCheckBox : FControlBase
 
     internal bool IsClickAnimationRunning => _clickAnimationTimer.Enabled;
 
+    private int ClickAnimationMaxSize => (int)Math.Round(DesignEffectSize * _scale);
+
     internal void StepClickAnimation()
     {
-        _animationSize += 1;
+        _animationSize += Math.Max(1, (int)Math.Round(_scale));
 
         // Stop once the ripple reaches its final size instead of repainting forever.
         if (_animationSize >= ClickAnimationMaxSize) _clickAnimationTimer.Stop();
@@ -312,120 +319,49 @@ public partial class FCheckBox : FControlBase
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    protected override void PaintControl(Graphics graphics)
     {
-        var roundingValue = 0.1F;
+        var roundingValue = CalculateRoundingValue(RegionRect.Height);
 
-        // Prepare geometry
-        if (Rounding && CornerRadius > 0)
-            roundingValue = _checkboxSize.Height / 100F * CornerRadius;
-
-        ShapePath?.Dispose();
+        ShapePath.Dispose();
         ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
+        UpdateRegion(roundingValue);
 
-        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
-        Region?.Dispose();
-        Region = new Region(regionPath);
+        DrawBorder(graphics, roundingValue);
 
-        // Layer 1: Border
-        Bitmap borderBitmap = new(Width, Height);
-        using (var graphics = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
-        {
-            if (BorderWidth != 0 && ShowBorder)
-            {
-                if (UseGradientBorder)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    
-                    using Pen pen = new(brush, BorderWidth);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    
-                    graphics.DrawPath(pen, ShapePath);
-                }
-                else
-                {
-                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    graphics.DrawPath(pen, ShapePath);
-                }
-            }
-        }
-        using (borderBitmap) formGraphics.DrawImage(borderBitmap, PointF.Empty);
+        if (EnableClickEffect && _animationSize < ClickAnimationMaxSize)
+            DrawEffectCircle(graphics, _animationSize, ClickEffectOpacity, ClickEffectColor);
+        if (EnableHoverEffect && IsHovered)
+            DrawEffectCircle(graphics, ClickAnimationMaxSize, HoverEffectOpacity, HoverEffectColor);
 
-        // Layer 2: Content
-        Bitmap contentBitmap = new(Width, Height);
-        using (var graphics = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
-        {
-            if (EnableClickEffect) DrawClickAnimation(graphics);
-            if (EnableHoverEffect && _isMouseHovered) DrawHoverCircleOverlay(graphics);
+        FillBackground(graphics);
+        if (Checked) DrawCheckMark(graphics);
 
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    graphics.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    graphics.FillPath(brush, ShapePath);
-                }
-            }
-
-            if (Checked) DrawCheckMark(graphics);
-        }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
-    }
-
-    private void DrawText(Graphics graphics)
-    {
+        var textX = RegionRect.Right + (int)Math.Round(10 * _scale);
+        var textY = Height / 2 - Font.Height / 2;
         using SolidBrush brush = new(ForeColor);
-        graphics.DrawString(
-            DisplayText, Font, brush,
-            new Rectangle((int)(25 + ShapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
+        graphics.DrawString(DisplayText, Font, brush, textX, textY);
+
+        var textWidth = (int)Math.Ceiling(graphics.MeasureString(DisplayText, Font).Width);
+        DrawFocusCue(graphics, new Rectangle(textX - 2, textY - 1, textWidth + 2, Font.Height + 2), 0.1F);
     }
 
     private void DrawCheckMark(Graphics graphics)
     {
-        using Font checkFont = new("Segoe MDL2 Assets", 10F, FontStyle.Regular);
+        // Pixel units: _scale already follows Height, which the form scales with DPI (10 pt at 96 DPI).
+        using Font checkFont = new("Segoe MDL2 Assets", 10F * 96F / 72F * _scale, FontStyle.Regular, GraphicsUnit.Pixel);
         using SolidBrush brush = new(GetRgbOrColor(ColorChecked));
-        graphics.DrawString("\uE73E", checkFont, brush,
-            new Rectangle(15 + 3, Size.Height / 2 - 25 / 2 + 5, 0, 0));
+        graphics.DrawString("\uE73E", checkFont, brush, RegionRect.X + 3 * _scale, RegionRect.Y + 5 * _scale);
     }
 
-    private void DrawClickAnimation(Graphics graphics)
+    private void DrawEffectCircle(Graphics graphics, int size, int opacity, Color color)
     {
-        if (_animationSize < ClickAnimationMaxSize)
-        {
-            Rectangle circleRect = new(
-                15 + 25 / 2 - _animationSize / 2 - 2,
-                Size.Height / 2 - _animationSize / 2 - 2,
-                _animationSize, _animationSize);
+        if (size <= 0) return;
 
-            if (circleRect is { Width: > 0, Height: > 0 })
-            {
-                using SolidBrush brush = new(Color.FromArgb(ClickEffectOpacity, ClickEffectColor));
-                graphics.FillEllipse(brush, circleRect);
-            }
-        }
-    }
-
-    private void DrawHoverCircleOverlay(Graphics graphics)
-    {
-        const int circleSize = 40;
-        Rectangle circleRect = new(
-            15 + 25 / 2 - circleSize / 2 - 2,
-            Size.Height / 2 - circleSize / 2 - 2,
-            circleSize, circleSize);
-
-        if (circleRect is { Width: > 0, Height: > 0 })
-        {
-            using SolidBrush brush = new(Color.FromArgb(HoverEffectOpacity, HoverEffectColor));
-            graphics.FillEllipse(brush, circleRect);
-        }
+        var centerX = RegionRect.X + RegionRect.Width / 2F;
+        var centerY = RegionRect.Y + RegionRect.Height / 2F;
+        using SolidBrush brush = new(Color.FromArgb(opacity, color));
+        graphics.FillEllipse(brush, centerX - size / 2F, centerY - size / 2F, size, size);
     }
 
     #endregion

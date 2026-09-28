@@ -37,4 +37,20 @@ public class FTextBoxTests : IDisposable
 
         Assert.Equal(1, eventCount);
     }
+
+    [Fact]
+    public void Constructor_DefaultStyle_EnablesFocusEffect()
+    {
+        Assert.True(_textBox.EnableFocusEffect);
+    }
+
+    [Fact]
+    public void UpdateTextBox_ForeColorChanged_AppliesToInnerTextBox()
+    {
+        _textBox.ForeColor = Color.Red;
+
+        _textBox.UpdateTextBox(true);
+
+        Assert.Equal(Color.Red, _textBox.InnerTextBox.ForeColor);
+    }
 }

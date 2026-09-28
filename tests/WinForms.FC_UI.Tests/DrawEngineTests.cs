@@ -227,6 +227,41 @@ public class DrawEngineTests
 
     #endregion
 
+    #region RgbToHsv Tests
+
+    [Theory]
+    [InlineData(255, 0, 0, 0F, 1F, 1F)]
+    [InlineData(0, 255, 0, 120F, 1F, 1F)]
+    [InlineData(0, 0, 255, 240F, 1F, 1F)]
+    [InlineData(255, 255, 255, 0F, 0F, 1F)]
+    [InlineData(0, 0, 0, 0F, 0F, 0F)]
+    [InlineData(255, 0, 255, 300F, 1F, 1F)]
+    public void RgbToHsv_KnownColors_ReturnsExpectedHsv(int r, int g, int b, float hue, float saturation, float value)
+    {
+        var result = DrawEngine.RgbToHsv(Color.FromArgb(r, g, b));
+
+        Assert.Equal(hue, result.Hue, 0.01F);
+        Assert.Equal(saturation, result.Saturation, 0.01F);
+        Assert.Equal(value, result.Value, 0.01F);
+    }
+
+    [Theory]
+    [InlineData(12, 200, 99)]
+    [InlineData(250, 128, 3)]
+    [InlineData(40, 40, 41)]
+    public void RgbToHsv_RoundTripThroughHsvToRgb_ReturnsSameColor(int r, int g, int b)
+    {
+        var (hue, saturation, value) = DrawEngine.RgbToHsv(Color.FromArgb(r, g, b));
+
+        var result = DrawEngine.HsvToRgb(hue, saturation, value);
+
+        Assert.InRange(result.R, r - 1, r + 1);
+        Assert.InRange(result.G, g - 1, g + 1);
+        Assert.InRange(result.B, b - 1, b + 1);
+    }
+
+    #endregion
+
     #region SetGlobalRgbTimer Tests
 
     [Fact]

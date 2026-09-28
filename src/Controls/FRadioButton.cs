@@ -6,16 +6,18 @@ using Timer = System.Windows.Forms.Timer;
 namespace FC_UI.Controls;
 
 [ToolboxBitmap(typeof(RadioButton))]
-[Description("Allows the user to select or deselect the corresponding option.")]
+[Description("Allows the user to select a single option from a group of choices.")]
 public partial class FRadioButton : FControlBase
 {
     #region Fields
 
+    // Geometry is designed for the default 45 px height and scaled proportionally to Height.
+    private const int DesignHeight = 45;
+    private const int DesignBoxSize = 21;
+    private const int DesignEffectSize = 40;
+
     private int _animationSize;
-    private bool _isMouseHovered;
-    private Size _radioSize;
-    private const int ClickAnimationMaxSize = 40;
-    private const int FixedHeight = 45;
+    private float _scale = 1F;
 
     #endregion
 
@@ -28,7 +30,7 @@ public partial class FRadioButton : FControlBase
     public event CheckedChangedHandler CheckedChanged = delegate { };
 
     [Category("FRadioButton")]
-    [Description("Enable/Disable checked status")]
+    [Description("Enable/Disable checked status. Checking a button unchecks the other AutoCheck buttons in the same container.")]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public bool Checked
     {
@@ -37,10 +39,17 @@ public partial class FRadioButton : FControlBase
         {
             if (field == value) return;
             field = value;
+            if (value && AutoCheck) UncheckSiblings();
             CheckedChanged();
+            AccessibilityNotifyClients(AccessibleEvents.StateChange, -1);
             Invalidate(true);
         }
     }
+
+    [Category("FRadioButton")]
+    [Description("Check the button on click and uncheck the other AutoCheck buttons in the same container")]
+    [DefaultValue(true)]
+    public bool AutoCheck { get; set; } = true;
 
     [Category("FRadioButton")]
     [Description("Inner circle size offset (must be even, default = 8)")]
@@ -195,6 +204,10 @@ public partial class FRadioButton : FControlBase
                     HoverEffectColor = Color.White;
                     ClickEffectInterval = 1;
                     RgbUpdateInterval = 300;
+                    Lighting = false;
+                    LightingColor = Color.FromArgb(29, 200, 238);
+                    LightingAlpha = 50;
+                    LightingWidth = 10;
                     UseGradientBackground = false;
                     GradientColor1 = Color.FromArgb(37, 52, 68);
                     GradientColor2 = Color.FromArgb(41, 63, 86);
@@ -219,6 +232,8 @@ public partial class FRadioButton : FControlBase
                         BorderColor = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                         ColorChecked = HelpEngine.RandomColor(HelpEngine.RandomInt(0, 255));
                     }
+                    Lighting = HelpEngine.RandomBool();
+                    if (Lighting) LightingColor = HelpEngine.RandomColor();
                     UseGradientBackground = HelpEngine.RandomBool();
                     if (UseGradientBackground)
                     {
@@ -264,7 +279,7 @@ public partial class FRadioButton : FControlBase
         get
         {
             var cp = base.CreateParams;
-            cp.ExStyle |= 0x02000000;
+            cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED
             return cp;
         }
     }
@@ -273,63 +288,110 @@ public partial class FRadioButton : FControlBase
 
     #region Events
 
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-            DrawText(e.Graphics);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-
-        base.OnPaint(e);
-    }
-
     protected override void OnMouseClick(MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left) ToggleChecked();
+        if (e.Button == MouseButtons.Left) ActivateByUser();
         base.OnMouseClick(e);
     }
 
-    private void ToggleChecked()
+    // Arrow keys move within the group; a lone button leaves them to normal focus navigation.
+    protected override bool IsInputKey(Keys keyData) =>
+        (keyData is Keys.Up or Keys.Down or Keys.Left or Keys.Right && GetGroupSibling(1) is not null)
+        || base.IsInputKey(keyData);
+
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        Checked = !Checked;
+        var step = e.KeyCode switch
+        {
+            Keys.Up or Keys.Left => -1,
+            Keys.Down or Keys.Right => 1,
+            _ => 0
+        };
 
-        _clickAnimationTimer.Stop();
-
-        _animationSize = _radioSize.Width;
-        if (Checked) _clickAnimationTimer.Start();
-        else Refresh();
+        if (step != 0 && e.Modifiers == Keys.None && GetGroupSibling(step) is { } next)
+        {
+            next.Focus();
+            next.ActivateByUser();
+            e.Handled = true;
+        }
+        base.OnKeyDown(e);
     }
 
-    protected override void OnMouseEnter(EventArgs e)
+    protected override void OnKeyUp(KeyEventArgs e)
     {
-        _isMouseHovered = true;
-        Refresh();
-        base.OnMouseEnter(e);
+        if (e.KeyCode == Keys.Space && e.Modifiers == Keys.None)
+        {
+            ActivateByUser();
+            e.Handled = true;
+        }
+        base.OnKeyUp(e);
     }
 
     protected override void OnMouseLeave(EventArgs e)
     {
         _clickAnimationTimer.Stop();
-        _isMouseHovered = false;
         _animationSize = 0;
-        Refresh();
         base.OnMouseLeave(e);
     }
 
-    protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
+    /// <summary>
+    /// Handles a user activation (click, Space, arrow keys, accessibility action).
+    /// </summary>
+    private void ActivateByUser()
     {
-        // The height is fixed; clamping here avoids a nested resize (and duplicate SizeChanged events).
-        base.SetBoundsCore(x, y, width, FixedHeight, specified);
+        if (!AutoCheck || Checked) return;
+
+        Checked = true;
+        _clickAnimationTimer.Stop();
+        _animationSize = RegionRect.Width;
+        _clickAnimationTimer.Start();
+    }
+
+    private void UncheckSiblings()
+    {
+        if (Parent is null) return;
+
+        foreach (var sibling in Parent.Controls.OfType<FRadioButton>())
+        {
+            if (sibling != this && sibling.AutoCheck) sibling.Checked = false;
+        }
+    }
+
+    private FRadioButton? GetGroupSibling(int step)
+    {
+        if (Parent is null) return null;
+
+        var group = Parent.Controls.OfType<FRadioButton>()
+            .Where(button => button == this || (button.AutoCheck && button.Visible && button.Enabled))
+            .OrderBy(button => button.TabIndex)
+            .ToList();
+        if (group.Count < 2) return null;
+
+        var index = group.IndexOf(this);
+        return group[(index + step + group.Count) % group.Count];
     }
 
     protected override void UpdateGeometry()
     {
-        _radioSize = new Size(21, 21);
-        RegionRect = new Rectangle(15, Size.Height / 2 - 12, _radioSize.Width, _radioSize.Height);
+        _scale = Math.Max(0.4F, (float)Height / DesignHeight);
+        var boxSize = Math.Max(8, (int)Math.Round(DesignBoxSize * _scale));
+        RegionRect = new Rectangle((int)Math.Round(15 * _scale), Height / 2 - (boxSize + 3) / 2, boxSize, boxSize);
+        ControlSize = RegionRect.Size;
     }
+
+    #endregion
+
+    #region Accessibility
+
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.RadioButton;
+
+    protected override string? AccessibleText => DisplayText;
+
+    protected override AccessibleStates AccessibleStateFlags => Checked ? AccessibleStates.Checked : AccessibleStates.None;
+
+    protected override string AccessibleDefaultActionText => "Select";
+
+    protected override void DoAccessibleDefaultAction() => ActivateByUser();
 
     #endregion
 
@@ -337,9 +399,11 @@ public partial class FRadioButton : FControlBase
 
     internal bool IsClickAnimationRunning => _clickAnimationTimer.Enabled;
 
+    private int ClickAnimationMaxSize => (int)Math.Round(DesignEffectSize * _scale);
+
     internal void StepClickAnimation()
     {
-        _animationSize += 1;
+        _animationSize += Math.Max(1, (int)Math.Round(_scale));
 
         // Stop once the ripple reaches its final size instead of repainting forever.
         if (_animationSize >= ClickAnimationMaxSize) _clickAnimationTimer.Stop();
@@ -351,134 +415,58 @@ public partial class FRadioButton : FControlBase
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    protected override void PaintControl(Graphics graphics)
     {
-        var roundingValue = CalculateRoundingValue(_radioSize.Height);
+        var roundingValue = CalculateRoundingValue(RegionRect.Height);
 
         ShapePath.Dispose();
         ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
+        UpdateRegion(roundingValue);
 
-        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
-        Region?.Dispose();
-        Region = new Region(regionPath);
+        DrawBorder(graphics, roundingValue);
 
-        // Border layer
-        Bitmap borderBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(borderBitmap, SmoothingMode, TextRenderingHint))
-        {
-            if (BorderWidth != 0 && ShowBorder)
-            {
-                if (UseGradientBorder)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientBorderColor1, GradientBorderColor2, 360);
-                    
-                    using Pen pen = new(brush, BorderWidth);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    
-                    g.DrawPath(pen, ShapePath);
-                }
-                else
-                {
-                    using Pen pen = new(GetRgbOrColor(BorderColor), BorderWidth);
-                    pen.LineJoin = LineJoin.Round;
-                    pen.DashCap = DashCap.Round;
-                    
-                    g.DrawPath(pen, ShapePath);
-                }
-            }
-        }
-        using (borderBitmap) formGraphics.DrawImage(borderBitmap, PointF.Empty);
+        if (EnableClickEffect && _animationSize < ClickAnimationMaxSize)
+            DrawEffectCircle(graphics, _animationSize, ClickEffectOpacity, ClickEffectColor);
+        if (EnableHoverEffect && IsHovered)
+            DrawEffectCircle(graphics, ClickAnimationMaxSize, HoverEffectOpacity, HoverEffectColor);
 
-        // Content layer
-        Bitmap contentBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
-        {
-            if (EnableClickEffect) DrawClickAnimation(g);
-            if (EnableHoverEffect && _isMouseHovered) DrawHoverCircleOverlay(g);
+        FillBackground(graphics);
+        if (Checked) DrawCheckMark(graphics);
 
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, ShapePath);
-                }
-            }
-
-            if (Checked) DrawCheckMark(g);
-        }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
-    }
-
-    private void DrawText(Graphics graphics)
-    {
+        var textX = RegionRect.Right + (int)Math.Round(10 * _scale);
+        var textY = Height / 2 - Font.Height / 2;
         using SolidBrush brush = new(ForeColor);
-        graphics.DrawString(
-            DisplayText, Font, brush,
-            new Rectangle((int)(25 + ShapePath.GetBounds().Width), Size.Height / 2 - Font.Height / 2, 0, 0));
+        graphics.DrawString(DisplayText, Font, brush, textX, textY);
+
+        var textWidth = (int)Math.Ceiling(graphics.MeasureString(DisplayText, Font).Width);
+        DrawFocusCue(graphics, new Rectangle(textX - 2, textY - 1, textWidth + 2, Font.Height + 2), 0.1F);
     }
 
     private void DrawCheckMark(Graphics graphics)
     {
-        var checkRect = RegionRect;
-        checkRect.Width -= SizeChecked;
-        checkRect.Height -= SizeChecked;
-        checkRect.X = checkRect.X + checkRect.Width / 2 - (10 - SizeChecked);
-        checkRect.Y = checkRect.Y + checkRect.Height / 2 - (10 - SizeChecked);
+        var inset = (int)Math.Round(SizeChecked * _scale / 2);
+        var checkRect = Rectangle.Inflate(RegionRect, -inset, -inset);
+        if (checkRect.Width <= 0 || checkRect.Height <= 0) return;
 
         using var checkPath = DrawEngine.CreateRoundedPath(checkRect, Rounding ? checkRect.Height / 100F * CornerRadius : 0.1F);
 
-        if (UseGradientFill)
-        {
-            using LinearGradientBrush brush = new(RegionRect,
-                GetRgbOrColor(GradientColor1),
-                Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientColor2,
-                360);
-            graphics.FillPath(brush, checkPath);
-        }
-        else
-        {
-            using SolidBrush brush = new(GetRgbOrColor(ColorChecked));
-            graphics.FillPath(brush, checkPath);
-        }
+        using Brush brush = UseGradientFill
+            ? new LinearGradientBrush(RegionRect,
+                GetRgbOrColor(GradientFillColor1),
+                Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2,
+                360)
+            : new SolidBrush(GetRgbOrColor(ColorChecked));
+        graphics.FillPath(brush, checkPath);
     }
 
-    private void DrawClickAnimation(Graphics graphics)
+    private void DrawEffectCircle(Graphics graphics, int size, int opacity, Color color)
     {
-        if (_animationSize < ClickAnimationMaxSize)
-        {
-            Rectangle circleRect = new(
-                15 + 25 / 2 - _animationSize / 2 - 2,
-                Size.Height / 2 - _animationSize / 2 - 2,
-                _animationSize, _animationSize);
+        if (size <= 0) return;
 
-            if (circleRect is { Width: > 0, Height: > 0 })
-            {
-                using SolidBrush brush = new(Color.FromArgb(ClickEffectOpacity, ClickEffectColor));
-                graphics.FillEllipse(brush, circleRect);
-            }
-        }
-    }
-
-    private void DrawHoverCircleOverlay(Graphics graphics)
-    {
-        const int circleSize = 40;
-        Rectangle circleRect = new(
-            15 + 25 / 2 - circleSize / 2 - 2,
-            Size.Height / 2 - circleSize / 2 - 2,
-            circleSize, circleSize);
-
-        if (circleRect is { Width: > 0, Height: > 0 })
-        {
-            using SolidBrush brush = new(Color.FromArgb(HoverEffectOpacity, HoverEffectColor));
-            graphics.FillEllipse(brush, circleRect);
-        }
+        var centerX = RegionRect.X + RegionRect.Width / 2F;
+        var centerY = RegionRect.Y + RegionRect.Height / 2F;
+        using SolidBrush brush = new(Color.FromArgb(opacity, color));
+        graphics.FillEllipse(brush, centerX - size / 2F, centerY - size / 2F, size, size);
     }
 
     #endregion

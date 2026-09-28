@@ -104,4 +104,27 @@ public class FGroupBoxTests : IDisposable
     {
         Assert.Equal("FC_UI", _groupBox.Tag);
     }
+
+    [Fact]
+    public void TabStop_Default_IsFalse()
+    {
+        Assert.False(_groupBox.TabStop);
+    }
+
+    [Fact]
+    public void DisplayText_Default_IsEmpty()
+    {
+        Assert.Equal(string.Empty, _groupBox.DisplayText);
+    }
+
+    [Fact]
+    public void AccessibilityObject_Caption_ReportsGroupingWithCaption()
+    {
+        _groupBox.DisplayText = "Options";
+
+        var accessible = _groupBox.AccessibilityObject;
+
+        Assert.Equal(AccessibleRole.Grouping, accessible.Role);
+        Assert.Equal("Options", accessible.Name);
+    }
 }

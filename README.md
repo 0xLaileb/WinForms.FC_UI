@@ -20,6 +20,8 @@
   - [📌 Prerequisites](#-prerequisites)
   - [📦 Installation](#-installation)
 - [💡 Usage](#-usage)
+- [⌨️ Keyboard and Accessibility](#️-keyboard-and-accessibility)
+- [🔄 Upgrading from 3.1.x](#-upgrading-from-31x)
 - [📚 API Reference](#-api-reference)
 - [🧪 Running Tests](#-running-tests)
 - [🏗️ Project Structure](#️-project-structure)
@@ -34,7 +36,7 @@
 
 **WinForms.FC_UI** is a custom UI control library for Windows Forms applications. It provides a set of fully customizable controls — buttons, checkboxes, radio buttons, switches, progress bars, scroll bars, text boxes, group boxes, and a color picker — all built with GDI+ custom rendering.
 
-Each control supports fine-grained visual customization including background color, border, gradient fills, lighting/shadow effects, corner rounding, click animations, and an animated RGB color-cycling mode.
+Each control supports fine-grained visual customization including background color, border, gradient fills, lighting/shadow effects, corner rounding, hover and click animations, and an animated RGB color-cycling mode. Controls also work from the keyboard, expose their role and state to screen readers, and render a grayscale look when disabled.
 
 ![FC_UI Demo](https://raw.githubusercontent.com/0xLaileb/WinForms.FC_UI/master/resources/default_style.gif)
 
@@ -52,25 +54,31 @@ Each control supports fine-grained visual customization including background col
 | Control | Effects | RGB Mode | Random Style | Gradient BG | Gradient Border | Lighting | Rounding | Resize |
 | :----------- | :-----: | :------: | :----------: | :---------: | :-------------: | :------: | :------: | :----: |
 | FButton      | ✅      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
-| FCheckBox    | ✅      | ✅       | ✅           | ✅          | ✅              | ❌       | ✅       | ❌     |
-| FRadioButton | ✅      | ✅       | ✅           | ✅          | ✅              | ❌       | ✅       | ❌     |
-| FSwitchBox   | ❌      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
-| FProgressBar | ❌      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
-| FScrollBar   | ❌      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
-| FRichTextBox | ❌      | ✅       | ✅           | ❌          | ✅              | ✅       | ✅       | ✅     |
-| FTextBox     | ❌      | ✅       | ✅           | ❌          | ✅              | ✅       | ✅       | ✅     |
-| FGroupBox    | ❌      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
-| ZColorPicker | ❌      | ❌       | ❌           | ✅          | ❌              | ❌       | ✅       | ❌     |
+| FCheckBox    | ✅      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+| FRadioButton | ✅      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+| FSwitchBox   | ✅      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+| FProgressBar | ✅      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+| FScrollBar   | ✅      | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+| FRichTextBox | ✅      | ✅       | ✅           | ❌¹         | ✅              | ✅       | ✅       | ✅     |
+| FTextBox     | ✅      | ✅       | ✅           | ❌¹         | ✅              | ✅       | ✅       | ✅     |
+| FGroupBox    | N/A     | ✅       | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+| ZColorPicker | N/A     | ✅²      | ✅           | ✅          | ✅              | ✅       | ✅       | ✅     |
+
+Effects per control: click ripple and hover overlay (FButton, FCheckBox, FRadioButton), hover overlay and sliding knob (FSwitchBox), smooth value animation (FProgressBar, opt-in via `EnableValueAnimation`), thumb hover highlight (FScrollBar), focus highlight of the border (FTextBox, FRichTextBox). N/A means not applicable.
+
+¹ The text is edited by a native `TextBox`/`RichTextBox`, which cannot draw a transparent or gradient background, so these controls always use the solid `BackgroundColor`.
+² RGB mode animates the border (`ShowBorder` is off in the default picker style).
 
 **Key capabilities:**
-- **Fine-grained styling** — background, border, effects, gradient, lighting, rounding, smoothing mode, font, and more
-- **RGB mode** — animated HSV color cycling across controls
-- **Random style** — randomly generates control appearance parameters
-- **Click effects** — circle ripple and white overlay animations (FButton, FCheckBox, FRadioButton)
-- **Gradient fills** — linear gradients for background and border
-- **Lighting/shadow** — blurred shadow effect around controls
-- **Corner rounding** — percentage-based corner radius for any control
-- **Global RGB component** — synchronizes RGB animation across all FC_UI controls
+- **Fine-grained styling**: background, border, effects, gradient, lighting, rounding, smoothing mode, font, and more
+- **RGB mode**: animated HSV color cycling across controls
+- **Random style**: randomly generates control appearance parameters
+- **Click and hover effects**: circle ripple, overlays, sliding switch knob, animated progress
+- **Gradient fills**: linear gradients for background and border
+- **Lighting/shadow**: blurred shadow effect around controls
+- **Corner rounding**: percentage-based corner radius for any control
+- **Global RGB component**: synchronizes RGB animation across all FC_UI controls
+- **Standard behavior**: keyboard operation, focus cues, screen reader roles, disabled look, `AcceptButton`/`DialogResult` support in `FButton`, grouped `FRadioButton` selection
 
 ---
 
@@ -131,7 +139,15 @@ button.Rgb = true;
 
 // Or use the Random style for a surprise
 button.ControlStyle = FControlBase.ControlStyleMode.Random;
+
+// Image next to the text; the button works as the form's Enter button
+button.Image = Image.FromFile("save.png"); // any Image; the button does not dispose it
+button.TextImageRelation = TextImageRelation.ImageBeforeText;
+button.DialogResult = DialogResult.OK;
+this.AcceptButton = button;
 ```
+
+`FRadioButton` behaves like the standard `RadioButton`: checking one button unchecks the other `AutoCheck` buttons in the same container, so put each group in its own `FGroupBox` or `Panel`.
 
 To animate all RGB-enabled controls in sync, add an `FGlobalRgb` component (from the Toolbox or in code):
 
@@ -154,20 +170,24 @@ globalRgb.Status = false; // they fall back to their own RgbUpdateInterval timer
 
 | Control | Description |
 |---|---|
-| `FButton` | Customizable button with click effects, gradients, lighting, and RGB mode |
-| `FCheckBox` | Checkbox with circle animation effects and gradient support |
-| `FRadioButton` | Radio button with customizable checked indicator and effects |
-| `FSwitchBox` | Toggle switch with smooth visual feedback |
-| `FProgressBar` | Progress indicator with gradient fill and text overlay |
-| `FScrollBar` | Horizontal/vertical scrollbar with thumb customization |
-| `FRichTextBox` | Rich text editor with styled border and lighting |
-| `FTextBox` | Text input with password masking and styled border |
-| `FGroupBox` | Container with styled frame and gradient background |
-| `ZColorPicker` | HSV color wheel picker with brightness slider |
+| Control | Description | Notable members |
+|---|---|---|
+| `FButton` | Button with click/hover effects, image, `IButtonControl` support | `DisplayText`, `Image`, `ImageSize`, `TextImageRelation`, `DialogResult`, `PerformClick()` |
+| `FCheckBox` | Checkbox with animated check effect; scales with `Height` | `Checked`, `CheckedChanged`, `DisplayText`, `ColorChecked` |
+| `FRadioButton` | Radio button with group behavior; scales with `Height` | `Checked`, `AutoCheck`, `CheckedChanged`, `SizeChecked`, `UseGradientFill` |
+| `FSwitchBox` | Toggle switch with sliding knob | `Checked`, `CheckedChanged`, `ColorValue`, `EnableToggleAnimation` |
+| `FProgressBar` | Progress indicator with gradient fill and percent text | `Value`, `Minimum`, `Maximum`, `ProgressText`, `EnableValueAnimation` |
+| `FScrollBar` | Horizontal/vertical scroll bar with draggable thumb | `Value`, `ValueChanged`, `Orientation`, `SmallStep`, `LargeStep`, `ThumbSize` |
+| `FRichTextBox` | Rich text editor with styled frame | `DisplayText`, `TextChanged`, `EnableFocusEffect`, `FocusBorderColor` |
+| `FTextBox` | Text input with password masking and styled frame | `DisplayText`, `Password`, `PasswordChar`, `InnerTextBox`, `EnableFocusEffect` |
+| `FGroupBox` | Container with styled frame and optional caption | `DisplayText` |
+| `ZColorPicker` | HSV color wheel with brightness slider, preview and RGB/HEX text | `SelectedColor`, `ColorChanged`, `ShowColorInfo`, `InfoTextColor`, `MarkerColor` |
+
+Every control also exposes `ControlStyle` (`Default`, `Custom`, `Random`).
 
 ### Common Properties
 
-Shared by all controls that derive from `FControlBase` (every control except `ZColorPicker`):
+Shared by all controls (they derive from `FControlBase`):
 
 | Property | Type | Description |
 |---|---|---|
@@ -195,6 +215,41 @@ Shared by all controls that derive from `FControlBase` (every control except `ZC
 |---|---|
 | `FGlobalRgb` | Enables synchronized global RGB mode for all FC_UI controls (`Status`, `TimerInterval`) |
 
+### Custom controls
+
+`FControlBase` can be subclassed: override `PaintControl(Graphics)` to draw (disabled controls are rendered through a grayscale filter automatically), `UpdateGeometry()` to recalculate layout after size, border, or lighting changes, and `DefaultAccessibleRole`/`AccessibleText`/`AccessibleStateFlags` to describe the control to screen readers. `PrepareGeometry`, `DrawBorder`, `ClipToContent`, `FillBackground`, and `DrawFocusCue` provide the shared rendering steps.
+
+---
+
+## ⌨️ Keyboard and Accessibility
+
+| Control | Keyboard |
+|---|---|
+| `FButton` | Space or Enter clicks the focused button; Enter elsewhere clicks the form's `AcceptButton` |
+| `FCheckBox`, `FSwitchBox` | Space toggles |
+| `FRadioButton` | Space selects; arrow keys move the selection within the group |
+| `FScrollBar` | Arrow keys (`SmallStep`), Page Up/Down (`LargeStep`), Home/End; mouse wheel |
+| `ZColorPicker` | Left/Right change the hue, Up/Down change the brightness |
+| `FProgressBar`, `FGroupBox` | Not focusable (skipped by Tab) |
+
+Focused controls draw a dotted focus cue when Windows shows keyboard cues. Each control reports an accessibility role (push button, check button, radio button, progress bar, scroll bar, grouping), its text as the accessible name, and its checked state or value; `AccessibleName` and `AccessibleRole` override the defaults.
+
+---
+
+## 🔄 Upgrading from 3.1.x
+
+Behavior that changed after 3.1.5 and may affect existing code:
+
+- Standard events are now raised: `SizeChanged`, `Resize`, `Paint`, `MouseEnter`/`MouseLeave`/`MouseDown`/`MouseMove`/`MouseUp`/`MouseClick`. Docked and anchored children of `FGroupBox` follow its size.
+- Property setters repaint asynchronously (`Invalidate`), so several changes produce one repaint. `FProgressBar.Value` (unless `EnableValueAnimation` is on) and `FScrollBar.Value` still repaint immediately.
+- New effect properties are not in existing designer files, so their `Default` style values apply after upgrading: hover overlay and sliding knob in `FSwitchBox`, thumb hover in `FScrollBar`, focus highlight in `FTextBox`/`FRichTextBox`. Turn them off with `EnableHoverEffect`, `EnableToggleAnimation`, or `EnableFocusEffect`.
+- The inner text field of `FTextBox`/`FRichTextBox` uses `ForeColor` instead of a fixed `WhiteSmoke` (the default `ForeColor` is the same color).
+- `FRadioButton`: clicking a checked button no longer unchecks it, and checking a button unchecks the other `AutoCheck` buttons in the same container. Set `AutoCheck = false` to manage `Checked` yourself.
+- `FCheckBox`/`FRadioButton` no longer force a 45 px height; the box, check mark, and effects scale with `Height`. The 45 px layout is unchanged.
+- `ZColorPicker` derives from `FControlBase` and no longer contains `PictureBox`/`Label` children. `SelectedColor` can be set from code (it moves the markers), and `ColorChanged` is raised only when the color actually changes.
+- `FScrollBar` implements `ISupportInitialize`; the WinForms designer adds `BeginInit`/`EndInit` the next time the form is saved, which keeps the serialized `Size` and `CornerRadius` of horizontal bars.
+- Disabled controls (`Enabled = false`) are drawn in grayscale.
+
 ---
 
 ## 🧪 Running Tests
@@ -205,7 +260,13 @@ dotnet build WinForms.FC_UI.slnx --no-restore --configuration Release
 dotnet test WinForms.FC_UI.slnx --no-build --configuration Release --verbosity normal
 ```
 
-Tests are located in [`tests/WinForms.FC_UI.Tests/`](tests/WinForms.FC_UI.Tests/) and use **xUnit**. They cover engine utilities (HSV-to-RGB conversion, rounded rectangle generation, random helpers), control property validation (defaults, bounds checking, events), and basic render smoke checks.
+Tests are located in [`tests/WinForms.FC_UI.Tests/`](tests/WinForms.FC_UI.Tests/) and use **xUnit**. They cover engine utilities (HSV/RGB conversion, rounded rectangle generation, random helpers), control property validation (defaults, bounds checking, events), keyboard, mouse, and accessibility behavior, animations, layout, and render checks.
+
+To run the demo application:
+
+```bash
+dotnet run --project examples/WinForms.FC_UI.Example
+```
 
 ---
 
@@ -284,10 +345,10 @@ Contributions are welcome! To get started:
 
 ## 🔮 Roadmap
 
-Things to add or fix in future releases:
+Ideas for future releases:
 
-1. **FButton** — Add image/icon support so a picture can be placed inside the button.
-2. **ZColorPicker** — Finish refactoring to remove the internal `PictureBox` dependency.
+1. **FTextBox / FRichTextBox**: gradient background (needs owner-drawn text editing instead of the native control).
+2. **Demo GIFs**: re-record the demos to show the newer effects (focus cues, sliding switch, disabled look).
 
 ---
 

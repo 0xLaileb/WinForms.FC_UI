@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using Timer = System.Windows.Forms.Timer;
 
 namespace FC_UI.Controls;
 
@@ -10,9 +11,11 @@ public partial class FProgressBar : FControlBase
 {
     #region Fields
 
-    private Rectangle _valueRect;
     private readonly StringFormat _textFormat = new();
-    private int _drawnValueWidth;
+    private readonly Timer _valueAnimationTimer = new() { Interval = 15 };
+
+    // Value currently drawn; trails Value while the value animation runs.
+    private double _displayedValue;
 
     #endregion
 
@@ -29,6 +32,15 @@ public partial class FProgressBar : FControlBase
             if (value <= Maximum && value >= Minimum)
             {
                 field = value;
+                AccessibilityNotifyClients(AccessibleEvents.ValueChange, -1);
+
+                if (EnableValueAnimation && IsHandleCreated && Visible)
+                {
+                    _valueAnimationTimer.Start();
+                    return;
+                }
+
+                _displayedValue = value;
                 // Synchronous repaint keeps progress visible when Value is updated from a busy UI-thread loop.
                 Refresh();
             }
@@ -112,6 +124,11 @@ public partial class FProgressBar : FControlBase
         }
     }
 
+    [Category("Effects")]
+    [Description("Animate the fill smoothly towards a new Value")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public bool EnableValueAnimation { get; set; }
+
     // --- Gradient Fill ---
 
     [Category("LinearGradient")]
@@ -187,6 +204,7 @@ public partial class FProgressBar : FControlBase
                     GradientFillColor2 = Color.FromArgb(100, 208, 232);
                     FillOpacity = 200;
                     FillColor = Color.FromArgb(29, 200, 238);
+                    EnableValueAnimation = false;
                     SmoothingMode = SmoothingMode.HighQuality;
                     TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
                     Font = HelpEngine.GetDefaultFont();
@@ -239,124 +257,121 @@ public partial class FProgressBar : FControlBase
 
     public FProgressBar()
     {
+        // A progress bar only displays state, so it is skipped by Tab navigation.
+        SetStyle(ControlStyles.Selectable, false);
+        TabStop = false;
+
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
 
         _textFormat.Alignment = StringAlignment.Center;
         _textFormat.LineAlignment = StringAlignment.Center;
+        _valueAnimationTimer.Tick += (_, _) => StepValueAnimation();
 
         UpdateGeometry();
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _textFormat.Dispose();
+        if (disposing)
+        {
+            _textFormat.Dispose();
+            _valueAnimationTimer.Stop();
+            _valueAnimationTimer.Dispose();
+        }
         base.Dispose(disposing);
     }
 
     #endregion
 
-    #region Events
+    #region Accessibility
 
-    protected override void OnPaint(PaintEventArgs e)
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.ProgressBar;
+
+    protected override string AccessibleValueText => $"{Percent}%";
+
+    #endregion
+
+    #region Animation
+
+    internal bool IsValueAnimationRunning => _valueAnimationTimer.Enabled;
+
+    internal double DisplayedValue => _displayedValue;
+
+    internal void StepValueAnimation()
     {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-            if (ProgressText) DrawText(e.Graphics);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
+        var delta = Value - _displayedValue;
+        var minStep = Math.Max(1, Maximum - Minimum) / 200.0;
 
-        base.OnPaint(e);
+        // Ease out: cover 25% of the remaining distance per tick, finishing with a small fixed step.
+        if (Math.Abs(delta) <= minStep)
+        {
+            _displayedValue = Value;
+            _valueAnimationTimer.Stop();
+        }
+        else
+        {
+            _displayedValue += Math.Sign(delta) * Math.Max(minStep, Math.Abs(delta) * 0.25);
+        }
+
+        Refresh();
     }
 
     #endregion
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    private int Percent
+    {
+        get
+        {
+            var range = Maximum - Minimum;
+            return range > 0 ? (int)Math.Round((double)(Value - Minimum) / range * 100) : 0;
+        }
+    }
+
+    protected override void PaintControl(Graphics graphics)
     {
         var roundingValue = PrepareGeometry(Height);
 
-        // Border layer
-        using var borderLayer = RenderBorderLayer(roundingValue);
-        formGraphics.DrawImage(borderLayer, PointF.Empty);
+        DrawBorder(graphics, roundingValue);
 
-        // Content layer
-        Bitmap contentBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        var state = ClipToContent(graphics, roundingValue, (int)(2 + BorderWidth));
+        FillBackground(graphics);
+        if (Value >= StartDrawingValue) DrawProgressFill(graphics, roundingValue);
+        graphics.Restore(state);
+
+        if (ProgressText)
         {
-            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
-                RegionRect.X - (int)(2 + BorderWidth),
-                RegionRect.Y - (int)(2 + BorderWidth),
-                RegionRect.Width + (int)(2 + BorderWidth) * 2,
-                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
-            using Region clipRegion = new(clipPath);
-            g.Clip = clipRegion;
-
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, ShapePath);
-                }
-            }
-
-            if (Value >= StartDrawingValue) DrawProgressFill(g, roundingValue);
+            using SolidBrush brush = new(ForeColor);
+            graphics.DrawString($"{Percent}%", Font, brush, RegionRect, _textFormat);
         }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
-    }
-
-    private void DrawText(Graphics graphics)
-    {
-        using SolidBrush brush = new(ForeColor);
-        var range = Maximum - Minimum;
-        var percent = range > 0 ? (int)Math.Round((double)(Value - Minimum) / range * 100) : 0;
-        graphics.DrawString(
-            $"{percent}%", Font, brush, RegionRect, _textFormat);
     }
 
     private void DrawProgressFill(Graphics graphics, float roundingValue)
     {
         var range = Maximum - Minimum;
-        if (range <= 0 || Value <= Minimum) return;
+        if (range <= 0 || _displayedValue <= Minimum) return;
 
-        var ratio = (double)(Value - Minimum) / range;
-        _drawnValueWidth = Convert.ToInt32(ShapePath.GetBounds().Width * ratio);
-        _valueRect = RegionRect with { Width = _drawnValueWidth };
+        var ratio = Math.Clamp((_displayedValue - Minimum) / range, 0, 1);
+        var valueRect = RegionRect with { Width = Convert.ToInt32(ShapePath.GetBounds().Width * ratio) };
 
         const int offset = 1;
-        _valueRect.X -= offset;
-        _valueRect.Y -= offset;
-        _valueRect.Width += offset * 2;
-        _valueRect.Height += offset * 2;
+        valueRect.Inflate(offset, offset);
         roundingValue += offset * 2;
 
-        var valueRounding = Math.Min(roundingValue, Math.Min(_valueRect.Width, _valueRect.Height) / 2f);
+        var valueRounding = Math.Min(roundingValue, Math.Min(valueRect.Width, valueRect.Height) / 2f);
         if (valueRounding < 0.5f) valueRounding = 0.1f;
 
-        using var valuePath = DrawEngine.CreateRoundedPath(_valueRect, valueRounding);
+        using var valuePath = DrawEngine.CreateRoundedPath(valueRect, valueRounding);
 
-        if (UseGradientFill)
-        {
-            using LinearGradientBrush brush = new(_valueRect,
+        using Brush brush = UseGradientFill
+            ? new LinearGradientBrush(valueRect,
                 Color.FromArgb(FillOpacity, GetRgbOrColor(GradientFillColor1)),
                 Color.FromArgb(FillOpacity, Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2),
-                360);
-            graphics.FillPath(brush, valuePath);
-        }
-        else
-        {
-            using SolidBrush brush = new(Color.FromArgb(FillOpacity, GetRgbOrColor(FillColor)));
-            graphics.FillPath(brush, valuePath);
-        }
+                360)
+            : new SolidBrush(Color.FromArgb(FillOpacity, GetRgbOrColor(FillColor)));
+        graphics.FillPath(brush, valuePath);
     }
 
     #endregion

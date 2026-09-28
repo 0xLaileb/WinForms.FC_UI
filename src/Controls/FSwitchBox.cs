@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using Timer = System.Windows.Forms.Timer;
 
 namespace FC_UI.Controls;
 
@@ -8,6 +9,16 @@ namespace FC_UI.Controls;
 [Description("Allows the user to enable or disable the corresponding option.")]
 public partial class FSwitchBox : FControlBase
 {
+    #region Fields
+
+    private const float ToggleAnimationStep = 0.2F;
+
+    // 0 = knob at the "off" position, 1 = knob at the "on" position.
+    private float _knobPosition;
+    private readonly Timer _toggleAnimationTimer = new() { Interval = 15 };
+
+    #endregion
+
     #region Properties
 
     public delegate void CheckedChangedHandler();
@@ -26,7 +37,12 @@ public partial class FSwitchBox : FControlBase
         {
             if (field == value) return;
             field = value;
+
+            if (EnableToggleAnimation && IsHandleCreated && Visible) _toggleAnimationTimer.Start();
+            else _knobPosition = value ? 1F : 0F;
+
             CheckedChanged();
+            AccessibilityNotifyClients(AccessibleEvents.StateChange, -1);
             Invalidate(true);
         }
     }
@@ -69,6 +85,36 @@ public partial class FSwitchBox : FControlBase
         set { field = value; Invalidate(true); }
     }
 
+    // --- Effects ---
+
+    [Category("Effects")]
+    [Description("Slide the knob instead of jumping when Checked changes")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public bool EnableToggleAnimation { get; set; }
+
+    [Category("Effects")]
+    [Description("Enable/Disable hover overlay effect")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public bool EnableHoverEffect
+    {
+        get;
+        set { field = value; Invalidate(); }
+    }
+
+    [Category("Effects")]
+    [Description("Hover effect opacity (1-255)")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public int HoverEffectOpacity
+    {
+        get;
+        set { if (value is > 0 and <= 255) field = value; }
+    }
+
+    [Category("Effects")]
+    [Description("Hover effect color")]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+    public Color HoverEffectColor { get; set; }
+
     // --- Style ---
 
     [Category("FSwitchBox")]
@@ -110,6 +156,10 @@ public partial class FSwitchBox : FControlBase
                     UseGradientBorder = false;
                     GradientBorderColor1 = Color.FromArgb(37, 52, 68);
                     GradientBorderColor2 = Color.FromArgb(41, 63, 86);
+                    EnableToggleAnimation = true;
+                    EnableHoverEffect = true;
+                    HoverEffectOpacity = 20;
+                    HoverEffectColor = Color.White;
                     SmoothingMode = SmoothingMode.HighQuality;
                     TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
                     Font = HelpEngine.GetDefaultFont();
@@ -162,24 +212,23 @@ public partial class FSwitchBox : FControlBase
     {
         ControlStyle = ControlStyleMode.Default;
         ControlStyle = ControlStyleMode.Custom;
+        _toggleAnimationTimer.Tick += (_, _) => StepToggleAnimation();
         UpdateGeometry();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _toggleAnimationTimer.Stop();
+            _toggleAnimationTimer.Dispose();
+        }
+        base.Dispose(disposing);
     }
 
     #endregion
 
     #region Events
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        try
-        {
-            ApplyGraphicsSettings(e.Graphics);
-            DrawBackground(e.Graphics);
-        }
-        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[{Name}] OnPaint error: {ex}"); }
-
-        base.OnPaint(e);
-    }
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
@@ -187,109 +236,100 @@ public partial class FSwitchBox : FControlBase
         base.OnMouseClick(e);
     }
 
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Space && e.Modifiers == Keys.None)
+        {
+            Checked = !Checked;
+            e.Handled = true;
+        }
+        base.OnKeyUp(e);
+    }
+
+    #endregion
+
+    #region Accessibility
+
+    protected override AccessibleRole DefaultAccessibleRole => AccessibleRole.CheckButton;
+
+    protected override AccessibleStates AccessibleStateFlags => Checked ? AccessibleStates.Checked : AccessibleStates.None;
+
+    protected override string AccessibleDefaultActionText => Checked ? "Turn off" : "Turn on";
+
+    protected override void DoAccessibleDefaultAction() => Checked = !Checked;
+
+    #endregion
+
+    #region Animation
+
+    internal bool IsToggleAnimationRunning => _toggleAnimationTimer.Enabled;
+
+    internal float KnobPosition => _knobPosition;
+
+    internal void StepToggleAnimation()
+    {
+        var target = Checked ? 1F : 0F;
+        _knobPosition = _knobPosition < target
+            ? Math.Min(target, _knobPosition + ToggleAnimationStep)
+            : Math.Max(target, _knobPosition - ToggleAnimationStep);
+
+        if (_knobPosition == target) _toggleAnimationTimer.Stop();
+        Refresh();
+    }
+
     #endregion
 
     #region Drawing
 
-    private void DrawBackground(Graphics formGraphics)
+    protected override void PaintControl(Graphics graphics)
     {
-        var roundingValue = CalculateRoundingValue(ControlSize.Height);
+        var roundingValue = PrepareGeometry(ControlSize.Height);
 
-        ShapePath.Dispose();
-        ShapePath = DrawEngine.CreateRoundedPath(RegionRect, roundingValue);
+        DrawBorder(graphics, roundingValue);
 
-        using var regionPath = DrawEngine.CreateRoundedPath(new Rectangle(0, 0, Width, Height), roundingValue);
-        Region?.Dispose();
-        Region = new Region(regionPath);
-
-        // Border layer
-        using var borderLayer = RenderBorderLayer(roundingValue);
-        formGraphics.DrawImage(borderLayer, PointF.Empty);
-
-        // Content layer
-        Bitmap contentBitmap = new(Width, Height);
-        using (var g = HelpEngine.GetGraphics(contentBitmap, SmoothingMode, TextRenderingHint))
+        var state = ClipToContent(graphics, roundingValue, (int)(2 + BorderWidth));
+        FillBackground(graphics);
+        DrawToggle(graphics);
+        if (EnableHoverEffect && IsHovered)
         {
-            using var clipPath = DrawEngine.CreateRoundedPath(new Rectangle(
-                RegionRect.X - (int)(2 + BorderWidth),
-                RegionRect.Y - (int)(2 + BorderWidth),
-                RegionRect.Width + (int)(2 + BorderWidth) * 2,
-                RegionRect.Height + (int)(2 + BorderWidth) * 2), Rounding ? roundingValue : 0.1F);
-            using Region clipRegion = new(clipPath);
-            g.Clip = clipRegion;
-
-            if (ShowBackground)
-            {
-                if (UseGradientBackground)
-                {
-                    using LinearGradientBrush brush = new(RegionRect, GradientColor1, GradientColor2, 360);
-                    g.FillPath(brush, ShapePath);
-                }
-                else
-                {
-                    using SolidBrush brush = new(BackgroundColor);
-                    g.FillPath(brush, ShapePath);
-                }
-            }
-
-            DrawToggle(g);
+            using SolidBrush brush = new(Color.FromArgb(HoverEffectOpacity, HoverEffectColor));
+            graphics.FillPath(brush, ShapePath);
         }
-        using (contentBitmap) formGraphics.DrawImage(contentBitmap, PointF.Empty);
+        graphics.Restore(state);
+
+        DrawInnerFocusCue(graphics, roundingValue);
     }
 
     private void DrawToggle(Graphics graphics)
     {
-        Rectangle toggleRect = new();
+        var offsetX = RegionRect.Width / 10;
+        var offsetY = RegionRect.Height / 6;
+        var knobSize = RegionRect.Height - offsetY * 2;
+        var offX = RegionRect.X + offsetX;
+        var onX = RegionRect.X + RegionRect.Width - offsetX - knobSize;
+        var t = _knobPosition;
 
-        if (Checked)
-        {
-            var offsetY = RegionRect.Height / 6;
-            toggleRect.Height = RegionRect.Height - offsetY * 2;
-            toggleRect.Width = toggleRect.Height;
-            toggleRect.X = RegionRect.X + RegionRect.Width - (RegionRect.Width / 10) - toggleRect.Width;
-            toggleRect.Y = RegionRect.Y + offsetY;
+        RectangleF toggleRect = new(offX + (onX - offX) * t, RegionRect.Y + offsetY, knobSize, knobSize);
 
-            if (UseGradientFill)
-            {
-                using LinearGradientBrush brush = new(RegionRect,
-                    GetRgbOrColor(GradientFillColor1),
-                    Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2,
-                    360);
-                graphics.FillEllipse(brush, toggleRect);
-            }
-            else
-            {
-                using SolidBrush brush = new(GetRgbOrColor(ColorValue));
-                graphics.FillEllipse(brush, toggleRect);
-            }
-        }
-        else
-        {
-            var offsetX = RegionRect.Width / 10;
-            var offsetY = RegionRect.Height / 6;
-            toggleRect.X = RegionRect.X + offsetX;
-            toggleRect.Y = RegionRect.Y + offsetY;
-            toggleRect.Height = RegionRect.Height - offsetY * 2;
-            toggleRect.Width = toggleRect.Height;
-            const float dimFactor = 0.5F;
+        var fill1 = GetRgbOrColor(UseGradientFill ? GradientFillColor1 : ColorValue);
+        var fill2 = UseGradientFill ? (Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2) : fill1;
 
-            Color DimColor(Color c) => Color.FromArgb((int)(c.R * dimFactor), (int)(c.G * dimFactor), (int)(c.B * dimFactor));
-
-            if (UseGradientFill)
-            {
-                var c1 = DimColor(GetRgbOrColor(GradientFillColor1));
-                var c2 = DimColor(Rgb ? DrawEngine.GetRgbColor(Hue + 20) : GradientFillColor2);
-                using LinearGradientBrush brush = new(RegionRect, c1, c2, 360);
-                graphics.FillEllipse(brush, toggleRect);
-            }
-            else
-            {
-                var dimmed = DimColor(GetRgbOrColor(ColorValue));
-                using SolidBrush brush = new(Color.FromArgb(100, dimmed.R, dimmed.G, dimmed.B));
-                graphics.FillEllipse(brush, toggleRect);
-            }
-        }
+        // The "off" knob is drawn at half brightness (and translucent without a gradient).
+        var offAlpha = UseGradientFill ? 255 : 100;
+        using Brush brush = UseGradientFill
+            ? new LinearGradientBrush(RegionRect, Blend(Dim(fill1, offAlpha), fill1, t), Blend(Dim(fill2, offAlpha), fill2, t), 360)
+            : new SolidBrush(Blend(Dim(fill1, offAlpha), fill1, t));
+        graphics.FillEllipse(brush, toggleRect);
     }
+
+    private static Color Dim(Color color, int alpha) =>
+        Color.FromArgb(alpha, (int)(color.R * 0.5F), (int)(color.G * 0.5F), (int)(color.B * 0.5F));
+
+    private static Color Blend(Color from, Color to, float t) => Color.FromArgb(
+        (int)(from.A + (to.A - from.A) * t),
+        (int)(from.R + (to.R - from.R) * t),
+        (int)(from.G + (to.G - from.G) * t),
+        (int)(from.B + (to.B - from.B) * t));
 
     #endregion
 }

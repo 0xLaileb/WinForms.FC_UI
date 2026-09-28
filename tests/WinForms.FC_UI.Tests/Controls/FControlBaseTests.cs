@@ -91,6 +91,52 @@ public class FControlBaseTests
     }
 
     [Fact]
+    public void DrawToBitmap_Disabled_RendersGrayscale()
+    {
+        using FButton button = new() { DisplayText = string.Empty };
+        using Bitmap bitmap = new(button.Width, button.Height);
+        Point sample = new(20, button.Height / 2);
+
+        button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, button.Size));
+        var enabledPixel = bitmap.GetPixel(sample.X, sample.Y);
+        button.Enabled = false;
+        button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, button.Size));
+        var disabledPixel = bitmap.GetPixel(sample.X, sample.Y);
+
+        Assert.True(enabledPixel.B - enabledPixel.R > 10, $"Expected a colored enabled fill, got {enabledPixel}.");
+        Assert.InRange(disabledPixel.R - disabledPixel.G, -2, 2);
+        Assert.InRange(disabledPixel.G - disabledPixel.B, -2, 2);
+    }
+
+    [Fact]
+    public void DrawToBitmap_GeometryUnchanged_KeepsRegionInstance()
+    {
+        using FButton button = new();
+        using Bitmap bitmap = new(button.Width, button.Height);
+
+        button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, button.Size));
+        var firstRegion = button.Region;
+        button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, button.Size));
+
+        Assert.NotNull(firstRegion);
+        Assert.Same(firstRegion, button.Region);
+    }
+
+    [Fact]
+    public void DrawToBitmap_AfterResize_ReplacesRegion()
+    {
+        using FButton button = new();
+        using Bitmap bitmap = new(300, 100);
+        button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, button.Size));
+        var firstRegion = button.Region;
+
+        button.Size = new Size(200, 80);
+        button.DrawToBitmap(bitmap, new Rectangle(Point.Empty, button.Size));
+
+        Assert.NotSame(firstRegion, button.Region);
+    }
+
+    [Fact]
     public void ShowBorder_Changed_DoesNotRaiseSizeChanged()
     {
         using FButton button = new();
